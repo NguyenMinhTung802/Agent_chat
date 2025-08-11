@@ -1,0 +1,16 @@
+"use client";
+import React from 'react';
+
+interface HeaderProps {
+  title: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ title }) => {
+  return (
+    <div className="w-4/5 h-16 bg-white flex items-center justify-center text-black"> {/* Thêm text-black */}
+      <h1>{title}</h1>
+    </div>
+  );
+}
+
+export default Header;

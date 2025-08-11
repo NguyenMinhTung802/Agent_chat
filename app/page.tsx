@@ -1,103 +1,200 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import InputMessage from './components/InputMessage';
+import Chat from './components/Chat';
+const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
-export default function Home() {
+interface Message {
+  sender: 'user' | 'agent';
+  text: string;
+}
+
+const ChatPage = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<{ id: string; title: string }[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    handleNewConversation();
+  }, []);
+
+  const fetchMessages = async (conversationId: string) => {
+    try {
+      const res = await axios.get(`https://api.oriagent.com/v1/messages?user=abc-123&conversation_id=${conversationId}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      });
+
+      const messagesList: Message[] = [];
+      res.data.data.forEach((msg: { query: string; agent_thoughts: { thought: string }[] }) => {
+        messagesList.push({
+          sender: 'user',
+          text: msg.query,
+        });
+        messagesList.push({
+          sender: 'agent',
+          text: msg.agent_thoughts.length > 0 ? msg.agent_thoughts[0].thought : '',
+        });
+      });
+
+      setMessages(messagesList);
+    } catch (error) {
+      console.error('Error fetching message history:', error);
+    }
+  };
+
+  const handleNewConversation = () => {
+    const emptyConversation = conversations.find(conv => conv.id === '');
+
+    if (emptyConversation) {
+        // Nếu đã có cuộc hội thoại trống, thiết lập currentConversationId thành conversationId trống
+        setCurrentConversationId(emptyConversation.id);
+        setMessages([]);
+        return; // Ngăn chặn tạo cuộc trò chuyện mới
+    }
+
+    // Tạo cuộc hội thoại mới nếu không có cuộc hội thoại trống
+    const newConversationId = ''; 
+    setConversations([...conversations, { id: newConversationId, title: `Cuộc trò chuyện mới` }]);
+    setCurrentConversationId(newConversationId);
+    setMessages([]);
+  };
+
+  const handleConversationClick = (id: string) => {
+    setCurrentConversationId(id);
+    fetchMessages(id);
+  };
+
+  const handleSendMessage = async (message: string) => {
+    setMessages([...messages, { sender: 'user', text: message }]);
+
+    const payload = {
+        inputs: {},
+        query: message,
+        response_mode: 'streaming',
+        conversation_id: currentConversationId,
+        user: 'abc-123',
+        files: [
+            {
+                type: 'image',
+                transfer_method: 'remote_url',
+                url: 'https://cloud.oriagent.com/logo/logo-site.png'
+            }
+        ]
+    };
+
+    try {
+        const response = await axios.post('https://api.oriagent.com/v1/chat-messages', payload, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const parts = response.data.split('\n\ndata: ');
+        let newConversationId: string = ''; 
+
+        parts.forEach((part: string) => {
+            try {
+                const cleanedPart = part.replace(/^data:\s*/, '');
+                const jsonPart = JSON.parse(cleanedPart);
+
+                if (jsonPart.event === "agent_thought") {
+                    const thought = jsonPart.thought;
+                    if (thought) {
+                        setMessages(prevMessages => [...prevMessages, { sender: 'agent', text: thought }]);
+                    }
+                }
+
+                if (jsonPart.conversation_id) {
+                    newConversationId = jsonPart.conversation_id;
+                }
+
+            } catch (jsonError) {
+                console.error("Failed to parse JSON:", jsonError);
+            }
+        });
+
+        if (newConversationId) {
+            setCurrentConversationId(newConversationId);
+            setConversations(prevConversations => 
+                prevConversations.map(conv => 
+                    conv.id === '' ? { ...conv, id: newConversationId } : conv
+                    )
+            );
+
+            fetchMessages(newConversationId);
+        }
+
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('AxiosError:', error.response?.data);
+        } else {
+            console.error('Error sending message:', error);
+        }
+    }
+  };
+
+  const handleDeleteConversation = (id: string) => {
+  // Lưu lại trạng thái của cuộc hội thoại hiện tại
+  const wasCurrentConversation = id === currentConversationId;
+
+  // Xóa cuộc hội thoại khỏi danh sách các cuộc hội thoại
+  const updatedConversations = conversations.filter(conv => conv.id !== id);
+  setConversations(updatedConversations);
+
+  if (wasCurrentConversation) {
+    // Nếu cuộc hội thoại bị xóa là cuộc hội thoại hiện tại
+    if (currentConversationId === '') {
+      // Nếu currentConversationId đang trống, tạo cuộc trò chuyện mới
+      handleNewConversation();
+    } else {
+      // Nếu không, tạo cuộc trò chuyện mới mặc định
+      handleNewConversation();
+      setCurrentConversationId(''); 
+    }
+  }
+};
+
+  const handleEditConversation = (id: string, newTitle: string) => {
+  setConversations(prevConversations => 
+    prevConversations.map(conv => 
+      conv.id === id ? { ...conv, title: newTitle } : conv
+    )
+  );
+};
+  // Lấy tiêu đề của cuộc trò chuyện hiện tại
+  const currentConversation = conversations.find(conv => conv.id === currentConversationId);
+  const title = currentConversation ? currentConversation.title : 'Cuộc trò chuyện mới'; // Nếu không có cuộc trò chuyện nào, hiển thị tiêu đề mặc định
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+    <div className="flex h-screen bg-white text-black">
+      <Sidebar 
+  conversations={conversations}
+  currentConversationId={currentConversationId}
+  onNewConversation={handleNewConversation}
+  onConversationClick={handleConversationClick}
+  onDeleteConversation={handleDeleteConversation}
+  onEditConversation={handleEditConversation} // Thêm prop này
+/>
+      <div className="flex flex-col w-4/5">
+        <Header title={title} /> {/* Sử dụng tiêu đề đã lấy ở trên */}
+        {error && (
+          <div className="flex justify-center items-center p-2 bg-red-100 text-red-600">
+            <img src="/report-issue.svg" alt="Warning" className="w-5 h-5 mr-2" />
+            <span>{error}</span>
+          </div>
+        )}
+        <Chat messages={messages} />
+        <InputMessage onSend={handleSendMessage} />
+      </div>
     </div>
   );
 }
+
+export default ChatPage;
