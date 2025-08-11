@@ -7,7 +7,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   return (
-    <div className="w-4/5 h-16 bg-white flex items-center justify-center text-black"> {/* Thêm text-black */}
+    <div className=" h-16 flex items-center justify-center text-black"> {/* Thêm text-black */}
       <h1>{title}</h1>
     </div>
   );

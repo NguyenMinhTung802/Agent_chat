@@ -184,12 +184,6 @@ const ChatPage = () => {
 />
       <div className="flex flex-col w-4/5">
         <Header title={title} /> {/* Sử dụng tiêu đề đã lấy ở trên */}
-        {error && (
-          <div className="flex justify-center items-center p-2 bg-red-100 text-red-600">
-            <img src="/report-issue.svg" alt="Warning" className="w-5 h-5 mr-2" />
-            <span>{error}</span>
-          </div>
-        )}
         <Chat messages={messages} />
         <InputMessage onSend={handleSendMessage} />
       </div>
