@@ -1,6 +1,9 @@
 "use client";
-import React, { useState } from 'react';
-import Image from 'next/image'; // Nhập Image từ Next.js
+import React, { useState, useRef } from 'react';
+import { ArrowUp, Paperclip, StopCircle, Mic } from "lucide-react"; // Nhập các icon từ lucide-react
+
+// Utility function for className merging
+const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ");
 
 interface InputMessageProps {
   onSend: (message: string) => void;
@@ -8,7 +11,9 @@ interface InputMessageProps {
 
 const InputMessage: React.FC<InputMessageProps> = ({ onSend }) => {
   const [message, setMessage] = useState('');
+  const [isRecording, setIsRecording] = useState(false); // Trạng thái ghi âm
   const [error, setError] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -20,7 +25,6 @@ const InputMessage: React.FC<InputMessageProps> = ({ onSend }) => {
   const handleSendMessage = () => {
     if (message.trim() === '') {
       setError('Lời nhắn là bắt buộc');
-      // Thiết lập hẹn giờ để xóa thông báo lỗi sau 1 giây
       setTimeout(() => {
         setError('');
       }, 1000);
@@ -29,48 +33,84 @@ const InputMessage: React.FC<InputMessageProps> = ({ onSend }) => {
     setError(''); // Xóa thông báo lỗi nếu có
     onSend(message);
     setMessage('');
+    
+    // Khôi phục chiều cao của textarea về kích thước mặc định
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = 'auto'; 
+      textareaRef.current.style.height = '44px'; // Chiều cao mặc định
     }
   };
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, window.innerHeight / 3)}px`;  // Giới hạn chiều cao tối đa là 1/3 màn hình
     }
   };
 
+  const handleStartRecording = () => {
+    console.log("Started recording");
+  };
+
+  const handleStopRecording = (duration: number) => {
+    console.log(`Stopped recording after ${duration} seconds`);
+    setIsRecording(false);
+  };
+
   return (
-    <div className="flex justify-center items-center mb-4 flex-col"> {/* Thay đổi để tạo một cột cho thông báo lỗi và form */}
-      {/* Hiển thị thông báo lỗi nếu có */}
-      {error && (
-        <div className="w-1/2 p-2 bg-gray-300 rounded-lg text-black text-center mb-2"> {/* Căn giữa và thêm nền xám */}
-          <span>{error}</span>
-        </div>
-      )}
-      <form className="w-1/2 flex items-center p-4 bg-white text-black rounded-lg shadow-lg">
-        <textarea
-          ref={textareaRef}
-          value={message}
-          onChange={handleChange}
-          placeholder="Nhập tin nhắn của bạn"
-          rows={1}
-          className="flex-grow border-2 border-gray-300 p-2 rounded-lg resize-none min-h-10 max-h-[30vh] overflow-y-auto"
-          onKeyDown={handleKeyDown}
-          required
-        />
-        <button type="button" onClick={handleSendMessage} className="ml-2 p-2 bg-gray-400 text-white rounded-lg flex items-center">
-          <Image 
-            src="/send.svg" // Đường dẫn đến file icon
-            alt="Gửi"
-            width={24} // Chiều rộng của icon
-            height={24} // Chiều cao của icon
+    <div className="flex flex-col justify-end items-center h-screen sticky bottom-0 p-10 z-10"> {/* Căn giữa theo chiều rộng và ở dưới cùng */}
+      <div className="flex flex-col w-1/2 bg-white rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.24)] transition-all duration-300">
+        {error && (
+          <div className="p-2 bg-red-400 rounded-lg text-white text-center mb-2">
+            <span>{error}</span>
+          </div>
+        )}
+        <div className="flex items-center">
+          <textarea
+            ref={textareaRef}
+            value={message}
+            onChange={handleTextareaChange}
+            placeholder="Nhập tin nhắn của bạn"
+            rows={1}
+            className="flex-grow bg-transparent px-3 py-2.5 text-base text-black placeholder:text-gray-400 resize-none max-h-[33vh] focus:outline-none" // Giới hạn chiều cao tối đa là 1/3 chiều cao màn hình
+            onKeyDown={handleKeyDown}
           />
-        </button> 
-      </form>
+          <button
+            type="button"
+            onClick={handleSendMessage}
+            className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-colors"
+          >
+            <ArrowUp className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex justify-between mt-2">
+          <button
+            className="flex items-center gap-2 text-gray-400 hover:text-black"
+            onClick={() => console.log("Open file upload")} // Place holder function
+          >
+            <Paperclip className="h-5 w-5" />
+            <span className="hover:text-black">Tải lên tệp</span>
+          </button>
+          <button
+            className="flex items-center gap-2 text-gray-400 hover:text-black"
+            onClick={() => {
+              setIsRecording(!isRecording);
+              if (!isRecording) {
+                handleStartRecording();
+              } else {
+                handleStopRecording(0); // Gọi hàm dừng ghi âm với thời gian 0
+              }
+            }}
+          >
+            {isRecording ? (
+              <StopCircle className="h-5 w-5 text-red-500" />
+            ) : (
+              <Mic className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
