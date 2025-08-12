@@ -27,7 +27,7 @@ const Chat: React.FC<ChatProps> = ({ messages, loading }) => {
                 <div key={`${msg.sender}-${index}`} className={`mb-2 ${msg.sender === 'user' ? 'flex justify-end' : 'flex justify-start'}`}>
                     {msg.sender === 'agent' && (
                         <Image 
-                            src="/AI_bot.svg" 
+                            src="/bot_avatar.png" 
                             alt="AI Bot"
                             width={40}
                             height={40}
