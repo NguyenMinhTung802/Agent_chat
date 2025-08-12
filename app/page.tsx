@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import InputMessage from './components/InputMessage';
 import Chat from './components/Chat';
+import Landing from './components/Landing'; // Import Landing component
 
 const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
@@ -18,10 +19,12 @@ const ChatPage = () => {
     const [conversations, setConversations] = useState<{ id: string; title: string }[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string>('');
     const [error, setError] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false); // Thêm trạng thái loading
+    const [loading, setLoading] = useState<boolean>(false); 
+    const [landing, setLanding] = useState<boolean>(false); // Đặt trạng thái landing mặc định là false
 
     useEffect(() => {
-        handleNewConversation();
+        // Khi mở trang web, đặt landing là true
+        setLanding(true);
     }, []);
 
     const fetchMessages = async (conversationId: string) => {
@@ -31,7 +34,6 @@ const ChatPage = () => {
                     'Authorization': `Bearer ${apiKey}`,
                 },
             });
-
             const messagesList: Message[] = [];
             res.data.data.forEach((msg: { query: string; agent_thoughts: { thought: string }[] }) => {
                 messagesList.push({
@@ -43,7 +45,6 @@ const ChatPage = () => {
                     text: msg.agent_thoughts.length > 0 ? msg.agent_thoughts[0].thought : '',
                 });
             });
-
             setMessages(messagesList);
         } catch (error) {
             console.error('Error fetching message history:', error);
@@ -51,35 +52,15 @@ const ChatPage = () => {
     };
 
     const handleNewConversation = () => {
-        const emptyConversation = conversations.find(conv => conv.id === '');
-
-        if (emptyConversation) {
-            setCurrentConversationId(emptyConversation.id);
-            setMessages([]);
-            return; // Ngăn chặn tạo cuộc trò chuyện mới
-        }
-
-        // Tạo cuộc hội thoại mới nếu không có cuộc hội thoại trống
-        const newConversationId = ''; 
-        setConversations([...conversations, { id: newConversationId, title: `Cuộc trò chuyện mới` }]);
-        setCurrentConversationId(newConversationId);
-        setMessages([]);
+        setLanding(true); 
     };
 
-    const handleConversationClick = (id: string) => {
-        setCurrentConversationId(id);
-        fetchMessages(id);
-    };
-
-    const handleSendMessage = async (message: string) => {
-        setMessages([...messages, { sender: 'user', text: message }]);
-        setLoading(true); // Bắt đầu loading
-
+    const handleFirstMessage = async (message: string) => {
         const payload = {
             inputs: {},
             query: message,
             response_mode: 'streaming',
-            conversation_id: currentConversationId,
+            conversation_id: '',
             user: 'abc-123',
             files: [
                 {
@@ -91,6 +72,7 @@ const ChatPage = () => {
         };
 
         try {
+            // Gửi yêu cầu API
             const response = await axios.post('https://api.oriagent.com/v1/chat-messages', payload, {
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
@@ -99,46 +81,107 @@ const ChatPage = () => {
             });
 
             const parts = response.data.split('\n\ndata: ');
-            let newConversationId: string = ''; 
+            let conversationId: string = ''; 
 
             parts.forEach((part: string) => {
                 try {
                     const cleanedPart = part.replace(/^data:\s*/, '');
                     const jsonPart = JSON.parse(cleanedPart);
-
-                    if (jsonPart.event === "agent_thought") {
-                        const thought = jsonPart.thought;
-                        if (thought) {
-                            setMessages(prevMessages => [...prevMessages, { sender: 'agent', text: thought }]);
-                        }
-                    }
-
+                    
                     if (jsonPart.conversation_id) {
-                        newConversationId = jsonPart.conversation_id;
+                        conversationId = jsonPart.conversation_id; // Lưu conversationId
                     }
-
                 } catch (jsonError) {
                     console.error("Failed to parse JSON:", jsonError);
                 }
             });
 
-            if (newConversationId) {
-                setCurrentConversationId(newConversationId);
-                setConversations(prevConversations => 
-                    prevConversations.map(conv => 
-                        conv.id === '' ? { ...conv, id: newConversationId } : conv
-                    )
-                );
-
-                fetchMessages(newConversationId);
+            // Tạo cuộc trò chuyện mới
+            if (conversationId) {
+                setConversations([...conversations, { id: conversationId, title: `Cuộc trò chuyện mới` }]);
+                handleConversationClick(conversationId); // Chuyển sang đoạn chat mới
+                setLanding(false); // Đặt landing thành false sau khi tạo cuộc trò chuyện mới
             }
 
-            setLoading(false); // Dừng loading khi có phản hồi
         } catch (error) {
-            setLoading(false); // Dừng loading nếu có lỗi
-            if (axios.isAxiosError(error)) {
-                console.error('AxiosError:', error.response?.data);
-            } else {
+            console.error('Error sending first message:', error);
+        }
+    };
+
+    const handleConversationClick = (id: string) => {
+        setCurrentConversationId(id);
+        fetchMessages(id);
+    };
+
+    const handleSendMessage = async (message: string) => {
+        if (landing) {
+            handleFirstMessage(message); // Gọi hàm handleFirstMessage khi đang ở landing
+        } else {
+            setMessages([...messages, { sender: 'user', text: message }]);
+            setLoading(true); // Bắt đầu loading
+
+            // Gọi hàm gửi tin nhắn ở đây
+            const payload = {
+                inputs: {},
+                query: message,
+                response_mode: 'streaming',
+                conversation_id: currentConversationId,
+                user: 'abc-123',
+                files: [
+                    {
+                        type: 'image',
+                        transfer_method: 'remote_url',
+                        url: 'https://cloud.oriagent.com/logo/logo-site.png'
+                    }
+                ]
+            };
+
+            try {
+                const response = await axios.post('https://api.oriagent.com/v1/chat-messages', payload, {
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const parts = response.data.split('\n\ndata: ');
+                let newConversationId: string = ''; 
+
+                parts.forEach((part: string) => {
+                    try {
+                        const cleanedPart = part.replace(/^data:\s*/, '');
+                        const jsonPart = JSON.parse(cleanedPart);
+
+                        if (jsonPart.event === "agent_thought") {
+                            const thought = jsonPart.thought;
+                            if (thought) {
+                                setMessages(prevMessages => [...prevMessages, { sender: 'agent', text: thought }]);
+                            }
+                        }
+
+                        if (jsonPart.conversation_id) {
+                            newConversationId = jsonPart.conversation_id;
+                        }
+
+                    } catch (jsonError) {
+                        console.error("Failed to parse JSON:", jsonError);
+                    }
+                });
+
+                if (newConversationId) {
+                    setCurrentConversationId(newConversationId);
+                    setConversations(prevConversations => 
+                        prevConversations.map(conv => 
+                            conv.id === '' ? { ...conv, id: newConversationId } : conv
+                        )
+                    );
+
+                    fetchMessages(newConversationId);
+                }
+
+                setLoading(false); // Dừng loading khi có phản hồi
+            } catch (error) {
+                setLoading(false); // Dừng loading nếu có lỗi
                 console.error('Error sending message:', error);
             }
         }
@@ -184,8 +227,12 @@ const ChatPage = () => {
             <div className="flex flex-col w-full">
                 <Header title={title} />
                 <div className="flex flex-col w-full overflow-y-auto ">
-                    <Chat messages={messages} loading={loading} /> {/* Truyền prop loading */}
-                    <InputMessage onSend={handleSendMessage} />
+                    {landing ? ( // Thay thế Chat bằng Landing khi trạng thái landing là true
+                        <Landing />
+                    ) : (
+                        <Chat messages={messages} loading={loading} />
+                    )}
+                    <InputMessage onSend={handleSendMessage} /> {/* Luôn hiển thị InputMessage */}
                 </div>
             </div>
         </div>
