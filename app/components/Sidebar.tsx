@@ -115,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {conversations.map((conv) => (
               <div
                 key={conv.id}
-                className={`p-2 cursor-pointer flex justify-between items-center ${
+                className={`p-2 m-2 cursor-pointer flex justify-between items-center ${
                   currentConversationId === conv.id ? "bg-gray-100 rounded-lg" : "hover:bg-gray-100 rounded-lg"
                 } rounded-lg`}
                 onMouseEnter={() => setHoveredConversationId(conv.id)}
