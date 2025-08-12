@@ -5,7 +5,6 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import InputMessage from './components/InputMessage';
 import Chat from './components/Chat';
-import BounceLoader from './components/BounceLoader'; // Import hiệu ứng loader
 
 const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
@@ -182,10 +181,12 @@ const ChatPage = () => {
                 onDeleteConversation={handleDeleteConversation}
                 onEditConversation={handleEditConversation}
             />
-            <div className="flex flex-col w-full overflow-y-auto ">
+            <div className="flex flex-col w-full">
                 <Header title={title} />
-                <Chat messages={messages} loading={loading} /> {/* Truyền prop loading */}
-                <InputMessage onSend={handleSendMessage} />
+                <div className="flex flex-col w-full overflow-y-auto ">
+                    <Chat messages={messages} loading={loading} /> {/* Truyền prop loading */}
+                    <InputMessage onSend={handleSendMessage} />
+                </div>
             </div>
         </div>
     );
