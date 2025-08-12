@@ -115,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {conversations.map((conv) => (
               <div
                 key={conv.id}
-                className={`p-4 cursor-pointer flex justify-between items-center ${
+                className={`p-2 cursor-pointer flex justify-between items-center ${
                   currentConversationId === conv.id ? "bg-gray-100 rounded-lg" : "hover:bg-gray-100 rounded-lg"
                 } rounded-lg`}
                 onMouseEnter={() => setHoveredConversationId(conv.id)}
@@ -163,7 +163,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             setEditTitle(conv.title);
                             setIsEditingId(conv.id);
                           }}
-                          className="flex items-center p-2 hover:bg-gray-100 w-full text-left rounded-lg"
+                          className="flex items-center p-3 hover:bg-gray-100 w-[120px] text-left rounded-lg"
                         >
                           <Image
                             src="/edit.svg"
@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </button>
                         <button
                           onClick={() => handleDelete(conv.id)}
-                          className="flex items-center p-2 hover:bg-gray-100 w-full text-left rounded-lg"
+                          className="flex items-center p-3 hover:bg-gray-100 w-[120px] text-left rounded-lg"
                         >
                           <Image
                             src="/delete.svg"
