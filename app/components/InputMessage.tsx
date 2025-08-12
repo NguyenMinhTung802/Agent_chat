@@ -59,7 +59,7 @@ const InputMessage: React.FC<InputMessageProps> = ({ onSend }) => {
   };
 
   return (
-    <div className="flex flex-col justify-end items-center h-screen bg-white sticky bottom-0 p-5 z-10"> {/* Căn giữa theo chiều rộng và ở dưới cùng */}
+    <div className="flex flex-col justify-end items-center h-screen bg-white sticky bottom-0 pb-5 z-10"> {/* Căn giữa theo chiều rộng và ở dưới cùng */}
       <div className="flex flex-col w-1/2 bg-white rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.24)] transition-all duration-300">
         {error && (
           <div className="p-2 bg-red-400 rounded-lg text-white text-center mb-2">
