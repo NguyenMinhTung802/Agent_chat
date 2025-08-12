@@ -31,7 +31,7 @@ const Chat: React.FC<ChatProps> = ({ messages, loading }) => {
                             alt="AI Bot"
                             width={40}
                             height={40}
-                            className="mr-2" 
+                            className="mr-2 w-10 h-10" // Thêm lớp CSS để có kích thước cố định
                         />
                     )}
                     <span className={`inline-block p-2 rounded-lg break-words ${msg.sender === 'user' ? 'text-black bg-gray-100 rounded-lg' : 'text-black'}`}>
