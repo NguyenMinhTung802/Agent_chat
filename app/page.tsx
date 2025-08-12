@@ -56,6 +56,7 @@ const ChatPage = () => {
     };
 
     const handleFirstMessage = async (message: string) => {
+        setLoading(true);
         const payload = {
             inputs: {},
             query: message,
@@ -102,6 +103,7 @@ const ChatPage = () => {
                 handleConversationClick(conversationId); // Chuyển sang đoạn chat mới
                 setLanding(false); // Đặt landing thành false sau khi tạo cuộc trò chuyện mới
             }
+        setLoading(false);
 
         } catch (error) {
             console.error('Error sending first message:', error);
@@ -228,7 +230,7 @@ const ChatPage = () => {
                 <Header title={title} />
                 <div className="flex flex-col w-full overflow-y-auto ">
                     {landing ? ( // Thay thế Chat bằng Landing khi trạng thái landing là true
-                        <Landing />
+                        <Landing loading={loading} />
                     ) : (
                         <Chat messages={messages} loading={loading} />
                     )}
