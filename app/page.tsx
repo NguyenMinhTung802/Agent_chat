@@ -49,37 +49,54 @@ const ChatPage = () => {
     };
 
     const handleFirstMessage = async (message: string) => {
-        setLoading(true);
-        let conversationId = "";
+    setLoading(true);
+    let conversationId = "";
+
+    // Gửi tin nhắn đầu tiên đến API để nhận conversation_id
+    const responseData = await sendMessageToAPI(message, conversationId); // Gọi hàm sendMessageToAPI
+    const parts = responseData.split('\n\ndata: ');
+    parts.forEach((part: string) => {
         try {
-            const responseData = await sendMessageToAPI(message, conversationId); // Gọi hàm sendMessageToAPI
+            const cleanedPart = part.replace(/^data:\s*/, '');
+            const jsonPart = JSON.parse(cleanedPart);
 
-            const parts = responseData.split('\n\ndata: ');
-            parts.forEach((part: string) => {
-                try {
-                    const cleanedPart = part.replace(/^data:\s*/, '');
-                    const jsonPart = JSON.parse(cleanedPart);
-                    
-                    if (jsonPart.conversation_id) {
-                        conversationId = jsonPart.conversation_id; // Lưu conversationId
-                    }
-                } catch (jsonError) {
-                    console.error("Failed to parse JSON:", jsonError);
-                }
-            });
-
-            // Tạo cuộc trò chuyện mới
-            if (conversationId) {
-                setConversations([...conversations, { id: conversationId, title: `Cuộc trò chuyện mới` }]);
-                handleConversationClick(conversationId); // Chuyển sang đoạn chat mới
-                setLanding(false); // Đặt landing thành false sau khi tạo cuộc trò chuyện mới
+            if (jsonPart.conversation_id) {
+                conversationId = jsonPart.conversation_id; // Lưu conversationId
             }
-        setLoading(false);
-
-        } catch (error) {
-            console.error('Error sending first message:', error);
+        } catch (jsonError) {
+            console.error("Failed to parse JSON:", jsonError);
         }
-    };
+    });
+
+    // Lấy tên cuộc trò chuyện
+    let conversationTitle = ''; // Khởi tạo title ở đây
+    const titleResponse = await sendMessageToAPI('Hãy đặt tên cho một cuộc trò chuyện có tin nhắn đầu tiên như sau, bạn cần dùng ngôn ngữ tương ứng với tin nhắn này: ' + message + '. Phản hồi chỉ bao gồm một dòng văn bản chứa tên cuộc trò chuyện, không có định dạng nào khác.', ''); // Gửi API để lấy title
+    const titleParts = titleResponse.split('\n\ndata: ');
+
+    titleParts.forEach((part: string) => {
+        try {
+            const cleanedTitlePart = part.replace(/^data:\s*/, '');
+            const jsonTitlePart = JSON.parse(cleanedTitlePart);
+
+            if (jsonTitlePart.event === "agent_thought") {
+                const thought = jsonTitlePart.thought;
+                if (thought) {
+                    conversationTitle = thought; // Lưu thought vào title
+                }
+            }
+        } catch (jsonError) {
+            console.error("Failed to parse JSON:", jsonError);
+        }
+    });
+
+    // Tạo cuộc trò chuyện mới
+    if (conversationId) {
+        setConversations([...conversations, { id: conversationId, title: conversationTitle }]);
+        handleConversationClick(conversationId); // Chuyển sang đoạn chat mới
+        setLanding(false); // Đặt landing thành false sau khi tạo cuộc trò chuyện mới
+    }
+    setLoading(false);
+};
 
     const handleConversationClick = (id: string) => {
         setCurrentConversationId(id);
