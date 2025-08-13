@@ -5,7 +5,7 @@ export default function PulsatingDots() {
     <div className="flex items-center justify-center">
       <div className="flex space-x-2">
         <motion.div
-          className="h-3 w-3 rounded-full bg-red-500"
+          className="h-0.5 w-0.5 rounded-full bg-black"
           animate={{
             scale: [1, 1.5, 1],
             opacity: [0.5, 1, 0.5],
@@ -17,7 +17,7 @@ export default function PulsatingDots() {
           }}
         />
         <motion.div
-          className="h-3 w-3 rounded-full bg-red-500"
+          className="h-0.5 w-0.5 rounded-full bg-black"
           animate={{
             scale: [1, 1.5, 1],
             opacity: [0.5, 1, 0.5],
@@ -30,7 +30,7 @@ export default function PulsatingDots() {
           }}
         />
         <motion.div
-          className="h-3 w-3 rounded-full bg-red-500"
+          className="h-0.5 w-0.5 rounded-full bg-black"
           animate={{
             scale: [1, 1.5, 1],
             opacity: [0.5, 1, 0.5],
