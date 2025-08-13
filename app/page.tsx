@@ -46,6 +46,7 @@ const ChatPage = () => {
 
     const handleNewConversation = () => {
         setLanding(true); 
+        setCurrentConversationId('');
     };
 
     const handleFirstMessage = async (message: string) => {
@@ -71,7 +72,7 @@ const ChatPage = () => {
 
     // Lấy tên cuộc trò chuyện
     let conversationTitle = ''; // Khởi tạo title ở đây
-    const titleResponse = await sendMessageToAPI('Hãy đặt tên cho một cuộc trò chuyện có tin nhắn đầu tiên như sau, bạn cần dùng ngôn ngữ tương ứng với tin nhắn này: ' + message + '. Phản hồi chỉ bao gồm một dòng văn bản chứa tên cuộc trò chuyện, không có định dạng nào khác.', ''); // Gửi API để lấy title
+    const titleResponse = await sendMessageToAPI('Dựa trên nội dung của tin nhắn đầu tiên, tạo một tiêu đề ngắn gọn (tối đa 10 từ), giữ nguyên ngôn ngữ và giọng điệu của tin nhắn. Tiêu đề phải phản ánh chính xác ý chính, không thêm hoặc suy đoán ngoài nội dung. Khi trả lời, chỉ xuất tên cuộc trò chuyện, không kèm giải thích. Đây là tin nhắn đầu tiên: ' + message, ''); // Gửi API để lấy title
     const titleParts = titleResponse.split('\n\ndata: ');
 
     titleParts.forEach((part: string) => {
