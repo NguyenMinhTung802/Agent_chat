@@ -26,13 +26,14 @@ const Chat: React.FC<ChatProps> = ({ messages, loading }) => {
             {messages.map((msg, index) => (
                 <div key={`${msg.sender}-${index}`} className={`mb-2 ${msg.sender === 'user' ? 'flex justify-end' : 'flex justify-start'}`}>
                     {msg.sender === 'agent' && (
-                        <Image 
-                            src="/bot_avatar.png" 
-                            alt="AI Bot"
-                            width={40}
-                            height={40}
-                            className="mr-2 w-10 h-10" // Thêm lớp CSS để có kích thước cố định
-                        />
+                        <div className="flex-shrink-0"> {/* Thêm div này để cố định kích thước của icon */}
+                            <Image 
+                                src="/bot_avatar.png" 
+                                alt="AI Bot"
+                                width={40}
+                                height={40}
+                            />
+                        </div>
                     )}
                     <span className={`inline-block p-2 rounded-lg break-words ${msg.sender === 'user' ? 'text-black bg-gray-100 rounded-lg' : 'text-black'}`}>
                         {msg.text.split('\n').map((line, i) => (
@@ -45,7 +46,15 @@ const Chat: React.FC<ChatProps> = ({ messages, loading }) => {
                 </div>
             ))}
             {loading && ( // Hiển thị loader khi loading là true
-                <div className="flex justify-center my-4">
+                <div className="flex justify-start my-4"> {/* Chỉnh tiêu chí căn trái */}
+                    <div className="mr-2 flex-shrink-0"> {/* Thêm div này để cố định kích thước của icon */}
+                        <Image 
+                            src="/bot_avatar.png" 
+                            alt="AI Bot"
+                            width={40}
+                            height={40}
+                        />
+                    </div>
                     <BounceLoader /> 
                 </div>
             )}
