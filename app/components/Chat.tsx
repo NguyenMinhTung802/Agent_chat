@@ -26,7 +26,7 @@ const Chat: React.FC<ChatProps> = ({ messages, loading }) => {
             {messages.map((msg, index) => (
                 <div key={`${msg.sender}-${index}`} className={`mb-2 ${msg.sender === 'user' ? 'flex justify-end' : 'flex justify-start'}`}>
                     {msg.sender === 'agent' && (
-                        <div className="flex-shrink-0"> {/* Thêm div này để cố định kích thước của icon */}
+                        <div className="mr-4 flex-shrink-0"> {/* Thêm div này để cố định kích thước của icon */}
                             <Image 
                                 src="/bot_avatar.png" 
                                 alt="AI Bot"
@@ -47,7 +47,7 @@ const Chat: React.FC<ChatProps> = ({ messages, loading }) => {
             ))}
             {loading && ( // Hiển thị loader khi loading là true
                 <div className="flex justify-start my-4"> {/* Chỉnh tiêu chí căn trái */}
-                    <div className="mr-2 flex-shrink-0"> {/* Thêm div này để cố định kích thước của icon */}
+                    <div className="mr-6 flex-shrink-0"> {/* Thêm div này để cố định kích thước của icon */}
                         <Image 
                             src="/bot_avatar.png" 
                             alt="AI Bot"
