@@ -52,52 +52,62 @@ const ChatPage = () => {
     const handleFirstMessage = async (message: string) => {
     setLoading(true);
     let conversationId = "";
+    try {
+        // Gửi tin nhắn đầu tiên đến API để nhận conversation_id
+        const responseData = await sendMessageToAPI(message, ""); // conversationId mặc định là rỗng
+        const parts = responseData.split('\n\ndata: ');
 
-    // Gửi tin nhắn đầu tiên đến API để nhận conversation_id
-    const responseData = await sendMessageToAPI(message, conversationId);
-    const parts = responseData.split('\n\ndata: ');
+        parts.forEach((part: string) => {
+            try {
+                let cleanedPart = part.trim(); // Xóa khoảng trắng dư thừa
+                if (cleanedPart.startsWith('{') && cleanedPart.endsWith('}')) { // Kiểm tra xem phần có định dạng JSON hợp lệ không
+                    cleanedPart = cleanedPart.replace(/^data:\s*/, '');
+                    const jsonPart = JSON.parse(cleanedPart);
 
-    parts.forEach((part: string) => {
-        try {
-            const cleanedPart = part.replace(/^data:\s*/, '');
-            const jsonPart = JSON.parse(cleanedPart);
-
-            if (jsonPart.conversation_id) {
-                conversationId = jsonPart.conversation_id; // Gán giá trị cho conversationId
-            }
-        } catch (jsonError) {
-            console.error("Failed to parse JSON:", jsonError);
-        }
-    });
-
-    // Lấy tên cuộc trò chuyện
-    let conversationTitle = ''; // Khởi tạo title ở đây
-    const titleResponse = await sendMessageToAPI('Dựa trên nội dung của tin nhắn đầu tiên, tạo một tiêu đề ngắn gọn (tối đa 10 từ), giữ nguyên ngôn ngữ và giọng điệu của tin nhắn. Tiêu đề phải phản ánh chính xác ý chính, không thêm hoặc suy đoán ngoài nội dung. Khi trả lời, chỉ xuất tên cuộc trò chuyện, không kèm giải thích. Đây là tin nhắn đầu tiên: ' + message, ''); // Gửi API để lấy title
-    const titleParts = titleResponse.split('\n\ndata: ');
-
-    titleParts.forEach((part: string) => {
-        try {
-            const cleanedTitlePart = part.replace(/^data:\s*/, '');
-            const jsonTitlePart = JSON.parse(cleanedTitlePart);
-
-            if (jsonTitlePart.event === "agent_thought") {
-                const thought = jsonTitlePart.thought;
-                if (thought) {
-                    conversationTitle = thought; // Lưu thought vào title
+                    if (jsonPart.conversation_id) {
+                        conversationId = jsonPart.conversation_id; // Gán giá trị cho conversationId
+                    }
                 }
+            } catch (jsonError) {
+                console.error(`Failed to parse JSON in handleFirstMessage: ${jsonError} -- Raw part: ${part}`);
             }
-        } catch (jsonError) {
-            console.error("Failed to parse JSON:", jsonError);
-        }
-    });
+        });
 
-    // Tạo cuộc trò chuyện mới
-    if (conversationId) {
-        setConversations([...conversations, { id: conversationId, title: conversationTitle }]);
-        handleConversationClick(conversationId); // Chuyển sang đoạn chat mới
-        setLanding(false); // Đặt landing thành false sau khi tạo cuộc trò chuyện mới
+        // Lấy tên cuộc trò chuyện
+        let conversationTitle = ''; // Khởi tạo title ở đây
+        const titleResponse = await sendMessageToAPI('Dựa trên nội dung của tin nhắn đầu tiên, tạo một tiêu đề ngắn gọn (tối đa 10 từ), giữ nguyên ngôn ngữ và giọng điệu của tin nhắn. Tiêu đề phải phản ánh chính xác ý chính, không thêm hoặc suy đoán ngoài nội dung. Khi trả lời, chỉ xuất tên cuộc trò chuyện, không kèm giải thích. Đây là tin nhắn đầu tiên: ' + message, ''); // Gửi API để lấy title
+        const titleParts = titleResponse.split('\n\ndata: ');
+
+        titleParts.forEach((part: string) => {
+            try {
+                let cleanedTitlePart = part.trim(); // Xóa khoảng trắng dư thừa
+                if (cleanedTitlePart.startsWith('{') && cleanedTitlePart.endsWith('}')) { // Kiểm tra xem phần có định dạng JSON hợp lệ không
+                    cleanedTitlePart = cleanedTitlePart.replace(/^data:\s*/, '');
+                    const jsonTitlePart = JSON.parse(cleanedTitlePart);
+
+                    if (jsonTitlePart.event === "agent_thought") {
+                        const thought = jsonTitlePart.thought;
+                        if (thought) {
+                            conversationTitle = thought; // Lưu thought vào title
+                        }
+                    }
+                }
+            } catch (jsonError) {
+                console.error(`Failed to parse JSON in conversation title response: ${jsonError} -- Raw part: ${part}`);
+            }
+        });
+
+        // Tạo cuộc trò chuyện mới
+        if (conversationId) {
+            setConversations([...conversations, { id: conversationId, title: conversationTitle }]);
+            handleConversationClick(conversationId); // Chuyển sang đoạn chat mới
+            setLanding(false); // Đặt landing thành false sau khi tạo cuộc trò chuyện mới
+        }
+    } catch (error) {
+        console.error('Error sending the first message:', error);
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
 };
 
     const handleConversationClick = (id: string) => {
@@ -107,39 +117,41 @@ const ChatPage = () => {
 };
     const handleSendMessage = async (message: string) => {
         if (landing) {
-            handleFirstMessage(message); // Gọi hàm handleFirstMessage khi đang ở landing
+            handleFirstMessage(message);
         } else {
             setMessages([...messages, { sender: 'user', text: message }]);
-            setLoading(true); // Bắt đầu loading
-            let conversation_id = currentConversationId
-            // Gọi hàm gửi tin nhắn ở đây
+            setLoading(true);
+            let conversation_id = currentConversationId;
+
             try {
-                const responseData = await sendMessageToAPI(message, conversation_id);
+            const responseData = await sendMessageToAPI(message, conversation_id);
+            const parts = responseData.split('\n\ndata: ');
 
-                const parts = responseData.split('\n\ndata: ');
-                parts.forEach((part: string) => {
-                    try {
-                        const cleanedPart = part.replace(/^data:\s*/, '');
-                        const jsonPart = JSON.parse(cleanedPart);
+            parts.forEach((part: string) => {
+                try {
+                let cleanedPart = part.trim(); // Xóa khoảng trắng dư thừa
+                if (cleanedPart.startsWith('{') && cleanedPart.endsWith('}')) { // Kiểm tra xem đây có phải là JSON không
+                    cleanedPart = cleanedPart.replace(/^data:\s*/, '');
+                    const jsonPart = JSON.parse(cleanedPart);
 
-                        if (jsonPart.event === "agent_thought") {
-                            const thought = jsonPart.thought;
-                            if (thought) {
-                                setMessages(prevMessages => [...prevMessages, { sender: 'agent', text: thought }]);
-                            }
-                        }
-                    } catch (jsonError) {
-                        console.error("Failed to parse JSON:", jsonError);
+                    if (jsonPart.event === "agent_thought") {
+                    const thought = jsonPart.thought || jsonPart.answer;
+                    if (thought) {
+                        setMessages(prevMessages => [...prevMessages, { sender: 'agent', text: thought }]);
                     }
-                });
-                setLoading(false); // Dừng loading khi có phản hồi
+                    }
+                }
+                } catch (jsonError) {
+                console.error(`Failed to parse JSON: ${jsonError} -- Raw part: ${part}`);
+                }
+            });
+            setLoading(false);
             } catch (error) {
-                setLoading(false); // Dừng loading nếu có lỗi
-                console.error('Error sending message:', error);
+            setLoading(false);
+            console.error('Error sending message:', error);
             }
         }
     };
-
     const handleDeleteConversation = (id: string) => {
         const wasCurrentConversation = id === currentConversationId;
 
