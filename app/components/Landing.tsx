@@ -1,4 +1,3 @@
-"use client";
 import React from 'react';
 import BounceLoader from './BounceLoader'; // Nhập hiệu ứng loader
 interface LandingProps {

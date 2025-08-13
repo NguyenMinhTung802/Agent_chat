@@ -18,7 +18,6 @@ const ChatPage = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [conversations, setConversations] = useState<{ id: string; title: string }[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string>('');
-    const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false); 
     const [landing, setLanding] = useState<boolean>(false); // Đặt trạng thái landing mặc định là false
 
