@@ -168,28 +168,28 @@ const ChatPage = () => {
     const title = currentConversation ? currentConversation.title : 'Cuộc trò chuyện mới';
 
     return (
-        <div className="flex h-screen bg-white text-black">
-            <Sidebar 
-                conversations={conversations}
-                currentConversationId={currentConversationId}
-                onNewConversation={handleNewConversation}
-                onConversationClick={handleConversationClick}
-                onDeleteConversation={handleDeleteConversation}
-                onEditConversation={handleEditConversation}
-            />
-            <div className="flex flex-col w-full">
-                <Header title={title} />
-                <div className="flex flex-col w-full overflow-y-auto ">
-                    {landing ? ( // Thay thế Chat bằng Landing khi trạng thái landing là true
-                        <Landing loading={loading} />
-                    ) : (
-                        <Chat messages={messages} loading={loading} />
-                    )}
-                    <InputMessage onSend={handleSendMessage} /> {/* Luôn hiển thị InputMessage */}
-                </div>
-            </div>
+  <div className="flex h-screen bg-white text-black">
+    <Sidebar 
+        conversations={conversations}
+        currentConversationId={currentConversationId}
+        onNewConversation={handleNewConversation}
+        onConversationClick={handleConversationClick}
+        onDeleteConversation={handleDeleteConversation}
+        onEditConversation={handleEditConversation}
+    />
+    <div className="flex flex-col w-full h-screen overflow-hidden">
+        <Header title={title} />
+        <div className="flex flex-col w-full h-full overflow-y-auto"> 
+            {landing ? (
+                <Landing loading={loading} />
+            ) : (
+                <Chat messages={messages} loading={loading} />
+            )}
+            <InputMessage onSend={handleSendMessage} />
         </div>
-    );
+    </div>
+  </div>
+);
 }
 
 export default ChatPage;
