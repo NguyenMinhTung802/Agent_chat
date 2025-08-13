@@ -53,15 +53,16 @@ const ChatPage = () => {
     let conversationId = "";
 
     // Gửi tin nhắn đầu tiên đến API để nhận conversation_id
-    const responseData = await sendMessageToAPI(message, conversationId); // Gọi hàm sendMessageToAPI
+    const responseData = await sendMessageToAPI(message, conversationId);
     const parts = responseData.split('\n\ndata: ');
+
     parts.forEach((part: string) => {
         try {
             const cleanedPart = part.replace(/^data:\s*/, '');
             const jsonPart = JSON.parse(cleanedPart);
 
             if (jsonPart.conversation_id) {
-                conversationId = jsonPart.conversation_id; // Lưu conversationId
+                conversationId = jsonPart.conversation_id; // Gán giá trị cho conversationId
             }
         } catch (jsonError) {
             console.error("Failed to parse JSON:", jsonError);

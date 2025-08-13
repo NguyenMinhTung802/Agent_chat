@@ -2,9 +2,6 @@
 import React, { useState, useRef } from 'react';
 import { ArrowUp, Paperclip, StopCircle, Mic } from "lucide-react"; // Nhập các icon từ lucide-react
 
-// Utility function for className merging
-const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ");
-
 interface InputMessageProps {
   onSend: (message: string) => void;
 }
