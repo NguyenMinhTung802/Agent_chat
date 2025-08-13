@@ -1,13 +1,11 @@
 "use client";
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import InputMessage from './components/InputMessage';
 import Chat from './components/Chat';
 import Landing from './components/Landing';
-import { sendMessageToAPI } from './api/api';
-const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+import { sendMessageToAPI, fetchMessagesFromAPI } from './api/api';
 
 interface Message {
     sender: 'user' | 'agent';
@@ -28,13 +26,9 @@ const ChatPage = () => {
 
     const fetchMessages = async (conversationId: string) => {
         try {
-            const res = await axios.get(`https://api.oriagent.com/v1/messages?user=abc-123&conversation_id=${conversationId}`, {
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                },
-            });
+            const messagesData = await fetchMessagesFromAPI(conversationId); // Gọi hàm mới từ api.ts
             const messagesList: Message[] = [];
-            res.data.data.forEach((msg: { query: string; agent_thoughts: { thought: string }[] }) => {
+            messagesData.forEach((msg: { query: string; agent_thoughts: { thought: string }[] }) => {
                 messagesList.push({
                     sender: 'user',
                     text: msg.query,

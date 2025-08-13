@@ -1,3 +1,4 @@
+// api.ts
 import axios from 'axios';
 
 const apiKey = process.env.NEXT_PUBLIC_API_KEY;
@@ -28,6 +29,20 @@ export const sendMessageToAPI = async (message: string, conversationId: string) 
         return response.data;
     } catch (error) {
         console.error('Error sending message to API:', error);
+        throw error; // Ném lỗi lên trên
+    }
+};
+
+export const fetchMessagesFromAPI = async (conversationId: string) => {
+    try {
+        const res = await axios.get(`https://api.oriagent.com/v1/messages?user=abc-123&conversation_id=${conversationId}`, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+            },
+        });
+        return res.data.data;
+    } catch (error) {
+        console.error('Error fetching message history:', error);
         throw error; // Ném lỗi lên trên
     }
 };
