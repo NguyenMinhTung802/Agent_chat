@@ -99,10 +99,10 @@ const ChatPage = () => {
 };
 
     const handleConversationClick = (id: string) => {
-        setCurrentConversationId(id);
-        fetchMessages(id);
-    };
-
+    setCurrentConversationId(id);
+    setLanding(false); // Đặt landing thành false
+    fetchMessages(id);
+};
     const handleSendMessage = async (message: string) => {
         if (landing) {
             handleFirstMessage(message); // Gọi hàm handleFirstMessage khi đang ở landing
