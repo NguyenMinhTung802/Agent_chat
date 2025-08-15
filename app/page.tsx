@@ -5,11 +5,11 @@ import Header from './components/Header';
 import InputMessage from './components/InputMessage';
 import Chat from './components/Chat';
 import Landing from './components/Landing';
-import ListAgent from './components/ListAgent'; // Nhập component ListAgent
+import ListAgent from './components/ListAgent';
 import { sendMessageToAPI, fetchMessagesFromFile, createNewConversationFile, setBaseDirectoryHandle } from './api/api';
 
 interface Message {
-    sender: 'user' | 'agent'; // Đảm bảo kiểu sender
+    sender: 'user' | 'agent';
     text: string;
 }
 
@@ -18,7 +18,7 @@ interface Conversation {
     title: string;
     latestAgent: string;
     conversationId: string;
-    messages: Message[]; // Đảm bảo messages là kiểu Message[]
+    messages: Message[]; 
 }
 
 const ChatPage = () => {
@@ -29,7 +29,7 @@ const ChatPage = () => {
     const [loading, setLoading] = useState<boolean>(false); 
     const [landing, setLanding] = useState<boolean>(true); 
     const [folderSelected, setFolderSelected] = useState<boolean>(false); 
-    const [showAgentList, setShowAgentList] = useState<boolean>(false); // Thêm state mới để theo dõi việc hiển thị danh sách agent
+    const [showAgentList, setShowAgentList] = useState<boolean>(false);
 
     const handleSelectDirectory = async () => {
         try {
@@ -69,21 +69,14 @@ const ChatPage = () => {
     const handleFirstMessage = async (message: string) => {
         setLoading(true);
         let chatKey = generateRandomKey();
-        console.log("Agent trong page trước process", currentAgent);
-
-        // Thêm tin nhắn user vào danh sách
         setMessages([...messages, { sender: 'user', text: message }]);
-
-        // Xử lý tin nhắn và lấy agent mới
         const { text: processedMessage, agent: newAgent } = processMessage(message);
-
-        console.log("Agent sau khi process", newAgent);
         const userMessage: Message = { sender: 'user', text: message };
         try {
             const responseData = await sendMessageToAPI(processedMessage, "", newAgent);
             const parts = responseData.split('\n\ndata: ');
 
-            let agentThoughts: Message[] = []; // Sử dụng kiểu Message cho agentThoughts
+            let agentThoughts: Message[] = [];
 
             parts.forEach((part: string) => {
                 try {
@@ -95,7 +88,7 @@ const ChatPage = () => {
                         if (jsonPart.event === "agent_thought") {
                             const thought = jsonPart.thought || jsonPart.answer;
                             if (thought) {
-                                agentThoughts.push({ sender: 'agent', text: thought }); // Đảm bảo kiểu dữ liệu chính xác
+                                agentThoughts.push({ sender: 'agent', text: thought });
                             }
                         }
                     }
@@ -103,8 +96,6 @@ const ChatPage = () => {
                     console.error(`Failed to parse JSON: ${jsonError}`);
                 }
             });
-
-            // Cập nhật tin nhắn của agent khi nhận được phản hồi
             if (agentThoughts.length > 0) {
                 setMessages(prevMessages => [...prevMessages, ...agentThoughts]);
             }
@@ -131,22 +122,18 @@ const ChatPage = () => {
                     console.error(`Failed to parse JSON for title: ${jsonError}`);
                 }
             });
-
-            // Cập nhật tiêu đề cho cuộc trò chuyện
             const newConversation: Conversation = {
                 key: chatKey,
                 title: conversationTitle,
                 latestAgent: newAgent,
                 conversationId: '',
-                messages: [...messages, userMessage, ...agentThoughts] // Sử dụng agentThoughts đã được xác định kiểu
+                messages: [...messages, userMessage, ...agentThoughts]
             };
 
-            // Gọi createNewConversationFile để tạo file mới sau khi có tiêu đề
             await createNewConversationFile(newConversation);
-            // Tạo cuộc trò chuyện mới trong state
             setConversations([...conversations, newConversation]);
-            handleConversationClick(chatKey); // Chuyển sang đoạn chat mới
-            setLanding(false); // Đặt landing thành false sau khi tạo cuộc trò chuyện mới
+            handleConversationClick(chatKey);
+            setLanding(false);
 
         } catch (error) {
             console.error('Error sending the first message:', error);
@@ -157,7 +144,7 @@ const ChatPage = () => {
 
     const handleConversationClick = (key: string) => {
         setCurrentChat(key);
-        setLanding(false); // Đặt landing thành false
+        setLanding(false);
         fetchMessages(key);
     };
 
@@ -177,9 +164,6 @@ const ChatPage = () => {
 
         // Cập nhật state cho React
         setCurrentAgent(newAgent);
-
-        console.log("Current agent set to", newAgent);
-
         return { text: message, agent: newAgent };
     };
 
@@ -187,15 +171,8 @@ const ChatPage = () => {
         if (landing) {
             handleFirstMessage(message);
         } else {
-            console.log("Agent trong page trước process", currentAgent);
-
-            // Thêm tin nhắn user vào danh sách
             setMessages([...messages, { sender: 'user', text: message }]);
-
-            // Xử lý tin nhắn và lấy agent mới
             const { text: processedMessage, agent: newAgent } = processMessage(message);
-
-            console.log("Agent sau khi process", newAgent);
             setLoading(true);
             try {
                 const responseData = await sendMessageToAPI(processedMessage, "", newAgent);
@@ -256,9 +233,9 @@ const ChatPage = () => {
     };
 
     const handleShowAgentList = () => {
-        setShowAgentList(true); // Chuyển sang chế độ hiển thị danh sách agent
-        setLanding(false); // Để không hiển thị Landing
-        setCurrentChat(''); // Đặt lại mã cuộc trò chuyện hiện tại
+        setShowAgentList(true); 
+        setLanding(false);
+        setCurrentChat('');
     };
 
     const currentConversation = conversations.find(conv => conv.key === currentChat);
@@ -273,11 +250,11 @@ const ChatPage = () => {
                 onConversationClick={handleClick}
                 onDeleteConversation={handleDeleteConversation}
                 onEditConversation={handleEditConversation}
-                onShowAgentList={handleShowAgentList} // Truyền hàm cho Sidebar
+                onShowAgentList={handleShowAgentList}
             />
             <div className="flex flex-col w-full h-screen overflow-hidden">
                 {showAgentList ? (
-                    <ListAgent /> // Loại bỏ onSearch
+                    <ListAgent/>
                 ) : (
                     <Header title={title} />
                 )}
