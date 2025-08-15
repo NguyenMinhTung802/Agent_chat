@@ -1,13 +1,5 @@
 import axios from 'axios';
 // Retrieve API keys from environment variables
-const DIRECTOR_AGENT_PUBLIC_API_KEY='app-ykWwcO0oO0lszDlZcvjMJzQv'
-const ACCOUNTANT_AGENT_PUBLIC_API_KEY='app-W9WRDuEEqWdvHcLaR9QRWoJA'
-const SECRETARY_AGENT_PUBLIC_API_KEY='app-O0S1m6zOpYurQX8LLAdP4Jgh'
-
-// Check if all API keys are set
-if (!DIRECTOR_AGENT_PUBLIC_API_KEY || !ACCOUNTANT_AGENT_PUBLIC_API_KEY || !SECRETARY_AGENT_PUBLIC_API_KEY) {
-    throw new Error('One or more API keys are missing. Please ensure all API keys are set in the environment variables.');
-}
 interface Message {
     sender: 'user' | 'agent';
     text: string;
@@ -97,24 +89,19 @@ export const deleteAgentFromFile = async (agentSyntax: string) => {
         throw error;
     }
 };
+let agentsDict: { [key: string]: string } = {};
+
+// Hàm để lấy agents từ file và thiết lập dictionary
+export const loadAgentsDict = async () => {
+    const agentsData = await getAgentsFromFile();
+    agentsData.forEach(agent => {
+        agentsDict[agent.syntax] = agent.apiKey; // Thiết lập syntax làm key và apiKey làm giá trị
+    });
+};
 
 export const sendMessageToAPI = async (message: string, conversationId: string, agent: string) => {
-    // Xác định apiEndpoint dựa trên agent
-    let apiEndpoint;
-    switch (agent) {
-        case 'director':
-            apiEndpoint = DIRECTOR_AGENT_PUBLIC_API_KEY;
-            break;
-        case 'accountant':
-            apiEndpoint = ACCOUNTANT_AGENT_PUBLIC_API_KEY;
-            break;
-        case 'secretary':
-            apiEndpoint = SECRETARY_AGENT_PUBLIC_API_KEY;
-            break;
-        default:
-            throw new Error('Invalid agent type');
-    }
-    console.log("agent được dùng trong api", agent)
+    const apiEndpoint = agentsDict[agent];
+    if (!apiEndpoint) throw new Error(`API key for agent ${agent} not found.`); // Kiểm tra nếu chưa có API cho agent
     const payload = {
         inputs: {},
         query: message,

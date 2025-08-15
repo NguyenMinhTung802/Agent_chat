@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -6,7 +7,7 @@ import InputMessage from './components/InputMessage';
 import Chat from './components/Chat';
 import Landing from './components/Landing';
 import ListAgent from './components/ListAgent';
-import { sendMessageToAPI, fetchMessagesFromFile, createNewConversationFile, setBaseDirectoryHandle, updateConversationFile } from './api/api';
+import { sendMessageToAPI, fetchMessagesFromFile, createNewConversationFile, setBaseDirectoryHandle, updateConversationFile, getAgentsFromFile, loadAgentsDict } from './api/api';
 
 interface Message {
     sender: 'user' | 'agent';
@@ -18,25 +19,40 @@ interface Conversation {
     title: string;
     latestAgent: string;
     conversationId: string;
-    messages: Message[]; 
+    messages: Message[];
 }
+
+// Dictionary để lưu trữ API và syntax
+let agentsDict: { [key: string]: string } = {};
 
 const ChatPage = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentChat, setCurrentChat] = useState<string>(''); 
-    const [currentAgent, setCurrentAgent] = useState<string>('director'); 
+    const [currentAgent, setCurrentAgent] = useState<string>(''); 
     const [loading, setLoading] = useState<boolean>(false); 
     const [landing, setLanding] = useState<boolean>(true); 
     const [folderSelected, setFolderSelected] = useState<boolean>(false); 
     const [showAgentList, setShowAgentList] = useState<boolean>(false);
 
+    const loadAgents = async () => {
+        const agentsData = await getAgentsFromFile(); // Lấy agents từ file
+        agentsData.forEach(agent => {
+            agentsDict[agent.syntax] = agent.apiKey; // Thiết lập syntax làm key và apiKey là giá trị
+        });
+        console.log("Agents loaded:", agentsDict);
+        loadAgentsDict()
+    };
+
     const handleSelectDirectory = async () => {
         try {
             const directoryHandle = await window.showDirectoryPicker();
             setBaseDirectoryHandle(directoryHandle);
-            setFolderSelected(true); // Đánh dấu là đã chọn thư mục
+            setFolderSelected(true);
             console.log("Selected directory:", directoryHandle);
+
+            // Gọi hàm loadAgents sau khi chọn thư mục
+            await loadAgents();
         } catch (error) {
             console.error('Error selecting directory:', error);
         }
@@ -50,7 +66,7 @@ const ChatPage = () => {
 
     const handleNewConversation = () => {
         setLanding(true); 
-        setCurrentAgent('director');
+        setCurrentAgent(getDefaultAgent());
         setMessages([]);
         setCurrentChat('');
         setShowAgentList(false);
@@ -84,7 +100,7 @@ const ChatPage = () => {
                     if (cleanedPart.startsWith('{') && cleanedPart.endsWith('}')) {
                         cleanedPart = cleanedPart.replace(/^data:\s*/, '');
                         const jsonPart = JSON.parse(cleanedPart);
-                        
+
                         if (jsonPart.event === "agent_thought") {
                             const thought = jsonPart.thought || jsonPart.answer;
                             if (thought) {
@@ -140,7 +156,7 @@ const ChatPage = () => {
         } finally {
             setLoading(false);
         }
-    };    
+    };
 
     const handleConversationClick = (key: string) => {
         setCurrentChat(key);
@@ -150,26 +166,24 @@ const ChatPage = () => {
 
     const processMessage = (message: string): { text: string; agent: string } => {
         let newAgent = currentAgent;
+        let syntax = '';
 
-        if (message.startsWith('@giamdoc:')) {
-            newAgent = 'director';
-            message = message.replace('@giamdoc:', '').trim();
-        } else if (message.startsWith('@ketoan:')) {
-            newAgent = 'accountant';
-            message = message.replace('@ketoan:', '').trim();
-        } else if (message.startsWith('@troly:')) {
-            newAgent = 'secretary';
-            message = message.replace('@troly:', '').trim();
+        if (message.startsWith('@')) {
+            const syntaxMatch = message.match(/^@([^:]+)/);
+            if (syntaxMatch && agentsDict[syntaxMatch[1]]) {
+                newAgent = syntaxMatch[1];
+                syntax = syntaxMatch[1];
+                message = message.replace(`@${newAgent}:`, '').trim();
+            }
         }
 
-        // Cập nhật state cho React
         setCurrentAgent(newAgent);
-        return { text: message, agent: newAgent };
+        return { text: message, agent: syntax || newAgent };
     };
 
     const handleSendMessage = async (message: string) => {
         if (landing) {
-            await handleFirstMessage(message); // Thêm await ở đây nếu cần
+            await handleFirstMessage(message); 
         } else {
             setMessages(prevMessages => [...prevMessages, { sender: 'user', text: message }]);
             const { text: processedMessage, agent: newAgent } = processMessage(message);
@@ -178,7 +192,7 @@ const ChatPage = () => {
                 const responseData = await sendMessageToAPI(processedMessage, "", newAgent);
                 const parts = responseData.split('\n\ndata: ');
 
-                let agentThought: Message | null = null; // Khởi tạo biến lưu ý tưởng của agent nếu có
+                let agentThought: Message | null = null;
 
                 for (const part of parts) {
                     try {
@@ -190,7 +204,7 @@ const ChatPage = () => {
                             if (jsonPart.event === "agent_thought") {
                                 const thought = jsonPart.thought || jsonPart.answer;
                                 if (thought) {
-                                    agentThought = { sender: 'agent', text: thought }; // Lưu ý tưởng vào biến
+                                    agentThought = { sender: 'agent', text: thought };
                                 }
                             }
                         }
@@ -199,7 +213,6 @@ const ChatPage = () => {
                     }
                 }
 
-                // Ghi lại tin nhắn vào file JSON nếu agent có ý tưởng
                 if (agentThought) {
                     setMessages(prevMessages => [...prevMessages, agentThought]);
                     await updateConversationFile(currentChat, [...messages, { sender: 'user', text: message }, agentThought]);
@@ -221,10 +234,10 @@ const ChatPage = () => {
 
         if (wasCurrentConversation) {
             if (currentChat === '') {
-                handleNewConversation(); // Nếu không có cuộc trò chuyện nào, tạo mới
+                handleNewConversation();
             } else {
-                handleNewConversation(); // Tạo cuộc trò chuyện mới
-                setCurrentChat(''); // Đặt lại mã cuộc trò chuyện hiện tại
+                handleNewConversation(); 
+                setCurrentChat('');
             }
         }
     };
@@ -245,6 +258,23 @@ const ChatPage = () => {
 
     const currentConversation = conversations.find(conv => conv.key === currentChat);
     const title = showAgentList ? 'Your AI agent list' : currentConversation ? currentConversation.title : 'New Conversation';
+
+    const getDefaultAgent = (): string => {
+        const pinnedAgents = Object.keys(agentsDict).filter(agentSyntax => {
+            return conversations.some(conv => conv.latestAgent === agentSyntax); // Điều kiện lọc
+        });
+
+        // Nếu không có agent được pin, lấy agent đầu tiên trong danh sách
+        if (pinnedAgents.length > 0) {
+            return pinnedAgents[0]; // Trả về agent được pin đầu tiên
+        }
+
+        // Lấy danh sách tất cả agents
+        const allAgents = Object.keys(agentsDict);
+        
+        // Nếu không agent nào có sẵn, trả về một chuỗi rỗng hoặc giá trị mặc định khác
+        return allAgents.length > 0 ? allAgents[0] : ''; // Hoặc có thể là một giá trị mặc định khác
+    };
 
     return (
         <div className="flex h-screen bg-white text-black">
