@@ -53,13 +53,21 @@ export const addAgentToFile = async (newAgent: Agent) => {
     if (!baseDirectoryHandle) {
         throw new Error('Base directory is not set. Please set the base directory first.');
     }
-
     try {
+        const existingAgents = await getAgentsFromFile();
+        // Kiểm tra xem syntax đã tồn tại chưa
+        const existingAgentIndex = existingAgents.findIndex(agent => agent.syntax === newAgent.syntax);
+
+        if (existingAgentIndex !== -1) {
+            // Nếu đã có agent với cùng syntax, cập nhật agent đó
+            existingAgents[existingAgentIndex] = newAgent; // Cập nhật agent
+        } else {
+            // Nếu không có, thêm agent mới vào danh sách
+            existingAgents.push(newAgent);
+        }
+
         const fileHandle = await baseDirectoryHandle.getFileHandle('agents.json', { create: true });
         const writable = await fileHandle.createWritable();
-        const existingAgents = await getAgentsFromFile();
-        // Thêm agent mới vào danh sách
-        existingAgents.push(newAgent);
         await writable.write(JSON.stringify(existingAgents, null, 2));
         await writable.close();
     } catch (error) {

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { addAgentToFile, getAgentsFromFile } from '../api/api'; 
+import Modal from './Modal'; // Nhập component Modal
 
 interface Agent {
     syntax: string;
@@ -10,10 +11,9 @@ interface Agent {
     isPinned: boolean;
 }
 
-const ListAgent: React.FC<{ onSearch: (searchTerm: string) => void; onAddNew: () => void; }> = ({ onSearch, onAddNew }) => {
+const ListAgent: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
-    const [showModal, setShowModal] = useState(false);
-    const [newAgent, setNewAgent] = useState<Agent>({ syntax: '', description: '', apiKey: '', isPinned: false });
+    const [showModal, setShowModal] = useState<boolean>(false); // State để mở/đóng modal
     const [searchTerm, setSearchTerm] = useState('');
 
     const fetchAgents = async () => {
@@ -25,11 +25,15 @@ const ListAgent: React.FC<{ onSearch: (searchTerm: string) => void; onAddNew: ()
         fetchAgents();
     }, []);
 
-    const handleAddAgent = async () => {
-        await addAgentToFile(newAgent);
-        setNewAgent({ syntax: '', description: '', apiKey: '', isPinned: false });
-        setShowModal(false); 
-        await fetchAgents(); 
+    const handlePinAgent = async (agent: Agent) => {
+        const updatedAgent = { ...agent, isPinned: !agent.isPinned };
+        await addAgentToFile(updatedAgent); // Cập nhật agent trong file
+        fetchAgents(); // Lấy lại danh sách agents
+    };
+
+    const handleAddNewAgent = async (agent: { syntax: string; description: string; apiKey: string; isPinned: boolean; }) => {
+        await addAgentToFile(agent); // Thêm agent mới
+        fetchAgents(); // Lấy lại danh sách agents
     };
 
     const handleSearch = () => {
@@ -47,27 +51,16 @@ const ListAgent: React.FC<{ onSearch: (searchTerm: string) => void; onAddNew: ()
         return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
     });
 
+    const pinnedAgents = sortedAgents.filter(agent => agent.isPinned);
+    const unpinnedAgents = sortedAgents.filter(agent => !agent.isPinned);
+
     return (
         <div>
             <header className="flex items-center justify-between p-4">
                 <h1 className="text-3xl font-bold">Your AI agent list</h1>
                 <div className="flex items-center gap-2">
                     <button 
-                        onClick={handleSearch} 
-                        className="flex items-center bg-gray-50 text-black hover:bg-gray-100 hover:text-black rounded-lg px-4 py-2"
-                    >
-                        <input 
-                            type="text" 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search Your Agent"
-                            onKeyDown={handleKeyDown} 
-                            className="border-0 focus:outline-none focus:ring-0"
-                        />
-                        <Image src="/search.svg" width={20} height={20} alt="Search your agent" className="ml-2" />
-                    </button>
-                    <button 
-                        onClick={onAddNew} 
+                        onClick={() => setShowModal(true)} // Mở modal
                         className="flex items-center bg-black text-white hover:bg-gray-200 hover:text-white rounded-lg px-4 py-2"
                     >
                         <Image src="/plus.svg" width={20} height={20} alt="Add new" />
@@ -75,56 +68,96 @@ const ListAgent: React.FC<{ onSearch: (searchTerm: string) => void; onAddNew: ()
                     </button>
                 </div>
             </header>
-            <div>
-                {sortedAgents.length > 0 ? (
-                    sortedAgents.map((agent, index) => (
-                        <div key={index} className="p-2 border rounded-lg mb-2">
-                            <h3 className="font-semibold">{agent.syntax}</h3>
-                            <p>{agent.description}</p>
-                            <p>API Key: {agent.apiKey}</p>
-                            <p>Pinned: {agent.isPinned ? "Yes" : "No"}</p>
+
+            {/* Modal để thêm agent mới */}
+            <Modal 
+                isOpen={showModal} 
+                onClose={() => setShowModal(false)} 
+                onSave={handleAddNewAgent} 
+            />
+
+            <div className="grid grid-cols-4 gap-4 p-4">
+                {pinnedAgents.length > 0 && (
+                    <div className="col-span-4 mb-4">
+                        <h2 className="text-xl font-semibold">Pinned Agents</h2>
+                        <div className="grid grid-cols-4 gap-4">
+                            {pinnedAgents.map((agent, index) => (
+                                <div key={index} className="border rounded-lg p-4 flex">
+                                    <div className="flex-shrink-0">
+                                        <Image src="/bot_avatar.png" alt="Agent" width={50} height={50} />
+                                    </div>
+                                    <div className="ml-4 flex-grow">
+                                        <h3 className="font-semibold">{agent.syntax}</h3>
+                                        <p className="line-clamp-2">{agent.description}</p>
+                                        <div className="flex gap-2 mt-2">
+                                            <button onClick={() => handlePinAgent(agent)} className="flex items-center bg-yellow-500 text-white rounded px-2">
+                                                <Image src="/pin.svg" alt="Pin/Unpin" width={20} height={20} />
+                                                <span>{agent.isPinned ? 'Unpin' : 'Pin'}</span>
+                                            </button>
+                                            <button className="flex items-center bg-blue-500 text-white rounded px-2">
+                                                <Image src="/edit.svg" alt="Edit" width={20} height={20} />
+                                                <span>Edit</span>
+                                            </button>
+                                            <button className="flex items-center bg-red-500 text-white rounded px-2">
+                                                <Image src="/delete.svg" alt="Delete" width={20} height={20} />
+                                                <span>Delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))
-                ) : (
-                    <div className="text-center">
-                        <p>You do not have any agent.</p>
                     </div>
                 )}
-            </div>
-            {showModal && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded shadow-lg">
-                        <h2 className="text-xl mb-4">Add New Agent</h2>
-                        <input
-                            type="text"
-                            placeholder="Syntax"
-                            value={newAgent.syntax}
-                            onChange={(e) => setNewAgent({ ...newAgent, syntax: e.target.value })}
-                            className="border rounded p-2 mb-2 w-full"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Description"
-                            value={newAgent.description}
-                            onChange={(e) => setNewAgent({ ...newAgent, description: e.target.value })}
-                            className="border rounded p-2 mb-2 w-full"
-                        />
-                        <input
-                            type="text"
-                            placeholder="API Key"
-                            value={newAgent.apiKey}
-                            onChange={(e) => setNewAgent({ ...newAgent, apiKey: e.target.value })}
-                            className="border rounded p-2 mb-4 w-full"
-                        />
-                        <button onClick={handleAddAgent} className="bg-blue-500 text-white px-4 py-2 rounded">
-                            Add Agent
-                        </button>
-                        <button onClick={() => setShowModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded ml-2">
-                            Cancel
-                        </button>
+
+                <div className="col-span-4 mb-4">
+                    <div className="grid grid-cols-4 gap-4">
+                        {unpinnedAgents.length > 0 ? (
+                            unpinnedAgents.map((agent, index) => (
+                                <div key={index} className="border rounded-lg p-4 flex">
+                                    <div className="flex-shrink-0">
+                                        <Image src="/bot_avatar.png" alt="Agent" width={50} height={50} />
+                                    </div>
+                                    <div className="ml-4 flex-grow">
+                                        <h3 className="font-semibold">{agent.syntax}</h3>
+                                        <p className="line-clamp-2">{agent.description}</p>
+                                        <div className="flex gap-2 mt-2">
+                                            <button onClick={() => handlePinAgent(agent)} className="flex items-center bg-yellow-500 text-white rounded px-2">
+                                                <Image src="/pin.svg" alt="Pin" width={20} height={20} />
+                                                <span>Pin</span>
+                                            </button>
+                                            <button className="flex items-center bg-blue-500 text-white rounded px-2">
+                                                <Image src="/edit.svg" alt="Edit" width={20} height={20} />
+                                                <span>Edit</span>
+                                            </button>
+                                            <button className="flex items-center bg-red-500 text-white rounded px-2">
+                                                <Image src="/delete.svg" alt="Delete" width={20} height={20} />
+                                                <span>Delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center col-span-4">
+                                <p>You do not have any unpinned agents.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
+            </div>
+
+            {/* Khu vực tìm kiếm */}
+            <div className="p-4">
+                <input 
+                    type="text" 
+                    placeholder="Search agents..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="border rounded p-2 w-full"
+                />
+            </div>
         </div>
     );
 };

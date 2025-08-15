@@ -14,7 +14,7 @@ interface Message {
 }
 
 interface Conversation {
-    key: string; 
+    key: string;
     title: string;
     latestAgent: string;
     conversationId: string;
@@ -153,7 +153,7 @@ const ChatPage = () => {
         } finally {
             setLoading(false);
         }
-    };   
+    };    
 
     const handleConversationClick = (key: string) => {
         setCurrentChat(key);
@@ -261,16 +261,6 @@ const ChatPage = () => {
         setCurrentChat(''); // Đặt lại mã cuộc trò chuyện hiện tại
     };
 
-    const handleSearchAgent = () => {
-        // Logic để tìm kiếm agent ở đây
-        console.log("Searching for agents...");
-    };
-
-    const handleAddNewAgent = () => {
-        // Logic để thêm agent mới ở đây
-        console.log("Adding new agent...");
-    };
-
     const currentConversation = conversations.find(conv => conv.key === currentChat);
     const title = showAgentList ? 'Your AI agent list' : currentConversation ? currentConversation.title : 'New Conversation';
 
@@ -287,10 +277,7 @@ const ChatPage = () => {
             />
             <div className="flex flex-col w-full h-screen overflow-hidden">
                 {showAgentList ? (
-                    <ListAgent 
-                        onSearch={handleSearchAgent} 
-                        onAddNew={handleAddNewAgent} 
-                    />
+                    <ListAgent /> // Loại bỏ onSearch
                 ) : (
                     <Header title={title} />
                 )}
