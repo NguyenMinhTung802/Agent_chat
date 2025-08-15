@@ -149,7 +149,29 @@ let baseDirectoryHandle: FileSystemDirectoryHandle | null = null;
 export const setBaseDirectoryHandle = (directoryHandle: FileSystemDirectoryHandle) => {
     baseDirectoryHandle = directoryHandle;
 };
+export const updateConversationFile = async (conversationKey: string, messages: Message[]) => {
+    if (!baseDirectoryHandle) {
+        throw new Error('Base directory is not set. Please set the base directory first.');
+    }
 
+    try {
+        const fileHandle = await baseDirectoryHandle.getFileHandle(`${conversationKey}.json`);
+        const file = await fileHandle.getFile();
+        const data = await file.text();
+        const conversationData = JSON.parse(data);
+
+        // Cập nhật các tin nhắn mới vào cuộc trò chuyện
+        conversationData.messages = messages;
+
+        const writable = await fileHandle.createWritable();
+        await writable.write(JSON.stringify(conversationData, null, 2));
+        await writable.close();
+        console.log("Conversation file updated successfully");
+    } catch (error) {
+        console.error("Failed to update conversation file:", error);
+        throw error;
+    }
+};
 export const fetchMessagesFromFile = async (key: string) => {
     if (!baseDirectoryHandle) {
         throw new Error('Base directory is not set. Please set the base directory first.');

@@ -6,7 +6,7 @@ import InputMessage from './components/InputMessage';
 import Chat from './components/Chat';
 import Landing from './components/Landing';
 import ListAgent from './components/ListAgent';
-import { sendMessageToAPI, fetchMessagesFromFile, createNewConversationFile, setBaseDirectoryHandle } from './api/api';
+import { sendMessageToAPI, fetchMessagesFromFile, createNewConversationFile, setBaseDirectoryHandle, updateConversationFile } from './api/api';
 
 interface Message {
     sender: 'user' | 'agent';
@@ -169,18 +169,20 @@ const ChatPage = () => {
 
     const handleSendMessage = async (message: string) => {
         if (landing) {
-            handleFirstMessage(message);
+            await handleFirstMessage(message); // Thêm await ở đây nếu cần
         } else {
-            setMessages([...messages, { sender: 'user', text: message }]);
+            setMessages(prevMessages => [...prevMessages, { sender: 'user', text: message }]);
             const { text: processedMessage, agent: newAgent } = processMessage(message);
             setLoading(true);
             try {
                 const responseData = await sendMessageToAPI(processedMessage, "", newAgent);
                 const parts = responseData.split('\n\ndata: ');
 
-                parts.forEach((part: string) => {
+                let agentThought: Message | null = null; // Khởi tạo biến lưu ý tưởng của agent nếu có
+
+                for (const part of parts) {
                     try {
-                        let cleanedPart = part.trim(); // Xóa khoảng trắng dư thừa
+                        let cleanedPart = part.trim();
                         if (cleanedPart.startsWith('{') && cleanedPart.endsWith('}')) {
                             cleanedPart = cleanedPart.replace(/^data:\s*/, '');
                             const jsonPart = JSON.parse(cleanedPart);
@@ -188,17 +190,20 @@ const ChatPage = () => {
                             if (jsonPart.event === "agent_thought") {
                                 const thought = jsonPart.thought || jsonPart.answer;
                                 if (thought) {
-                                    setMessages(prevMessages => [
-                                        ...prevMessages,
-                                        { sender: 'agent', text: thought }
-                                    ]);
+                                    agentThought = { sender: 'agent', text: thought }; // Lưu ý tưởng vào biến
                                 }
                             }
                         }
                     } catch (jsonError) {
                         console.error(`Failed to parse JSON: ${jsonError} -- Raw part: ${part}`);
                     }
-                });
+                }
+
+                // Ghi lại tin nhắn vào file JSON nếu agent có ý tưởng
+                if (agentThought) {
+                    setMessages(prevMessages => [...prevMessages, agentThought]);
+                    await updateConversationFile(currentChat, [...messages, { sender: 'user', text: message }, agentThought]);
+                }
 
                 setLoading(false);
             } catch (error) {
