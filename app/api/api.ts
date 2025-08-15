@@ -1,9 +1,90 @@
-// api.ts
 import axios from 'axios';
+// Retrieve API keys from environment variables
+const DIRECTOR_AGENT_PUBLIC_API_KEY='app-ykWwcO0oO0lszDlZcvjMJzQv'
+const ACCOUNTANT_AGENT_PUBLIC_API_KEY='app-W9WRDuEEqWdvHcLaR9QRWoJA'
+const SECRETARY_AGENT_PUBLIC_API_KEY='app-O0S1m6zOpYurQX8LLAdP4Jgh'
 
-const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+// Check if all API keys are set
+if (!DIRECTOR_AGENT_PUBLIC_API_KEY || !ACCOUNTANT_AGENT_PUBLIC_API_KEY || !SECRETARY_AGENT_PUBLIC_API_KEY) {
+    throw new Error('One or more API keys are missing. Please ensure all API keys are set in the environment variables.');
+}
+interface Message {
+    sender: 'user' | 'agent';
+    text: string;
+}
 
-export const sendMessageToAPI = async (message: string, conversationId: string) => {
+interface Conversation {
+    key: string; // Changed from 'id' to 'key'
+    title: string;
+    latestAgent: string;
+    conversationId: string;
+    messages: Message[];
+}
+
+interface Agent {
+    syntax: string;
+    description: string;
+    apiKey: string;
+    isPinned: boolean; // Thêm thuộc tính isPinned
+}
+
+export const getAgentsFromFile = async (): Promise<Agent[]> => {
+    if (!baseDirectoryHandle) {
+        throw new Error('Base directory is not set. Please set the base directory first.');
+    }
+
+    try {
+        const fileHandle = await baseDirectoryHandle.getFileHandle('agents.json');
+        const file = await fileHandle.getFile();
+        const data = await file.text();
+        return data ? JSON.parse(data) : []; // Nếu dữ liệu rỗng, trả về mảng rỗng
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'NotFoundError') {
+            return []; // Nếu file không tồn tại thì trả về mảng rỗng
+        } else if (error instanceof SyntaxError) {
+            console.error("Invalid JSON format in agents.json:", error.message);
+            return []; // Trả về mảng rỗng nếu JSON không hợp lệ
+        }
+        throw new Error('Error reading agents file: ' + error);
+    }
+};
+
+export const addAgentToFile = async (newAgent: Agent) => {
+    if (!baseDirectoryHandle) {
+        throw new Error('Base directory is not set. Please set the base directory first.');
+    }
+
+    try {
+        const fileHandle = await baseDirectoryHandle.getFileHandle('agents.json', { create: true });
+        const writable = await fileHandle.createWritable();
+        const existingAgents = await getAgentsFromFile();
+        // Thêm agent mới vào danh sách
+        existingAgents.push(newAgent);
+        await writable.write(JSON.stringify(existingAgents, null, 2));
+        await writable.close();
+    } catch (error) {
+        console.error("Failed to update agents file:", error);
+        throw error;
+    }
+};
+
+export const sendMessageToAPI = async (message: string, conversationId: string, agent: string) => {
+    // Xác định apiEndpoint dựa trên agent
+    let apiEndpoint;
+    switch (agent) {
+        case 'director':
+            apiEndpoint = DIRECTOR_AGENT_PUBLIC_API_KEY;
+            break;
+        case 'accountant':
+            apiEndpoint = ACCOUNTANT_AGENT_PUBLIC_API_KEY;
+            break;
+        case 'secretary':
+            apiEndpoint = SECRETARY_AGENT_PUBLIC_API_KEY;
+            break;
+        default:
+            throw new Error('Invalid agent type');
+    }
+    console.log("agent được dùng trong api", agent)
     const payload = {
         inputs: {},
         query: message,
@@ -22,27 +103,53 @@ export const sendMessageToAPI = async (message: string, conversationId: string) 
     try {
         const response = await axios.post('https://api.oriagent.com/v1/chat-messages', payload, {
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${apiEndpoint}`,
                 'Content-Type': 'application/json'
             }
         });
         return response.data;
     } catch (error) {
         console.error('Error sending message to API:', error);
-        throw error; // Ném lỗi lên trên
+        throw error;
     }
 };
 
-export const fetchMessagesFromAPI = async (conversationId: string) => {
+let baseDirectoryHandle: FileSystemDirectoryHandle | null = null;
+
+export const setBaseDirectoryHandle = (directoryHandle: FileSystemDirectoryHandle) => {
+    baseDirectoryHandle = directoryHandle;
+};
+
+export const fetchMessagesFromFile = async (key: string) => {
+    if (!baseDirectoryHandle) {
+        throw new Error('Base directory is not set. Please set the base directory first.');
+    }
+    
+    const fileHandle = await baseDirectoryHandle.getFileHandle(`${key}.json`);
+    const file = await fileHandle.getFile();
+    const data = await file.text();
+    return JSON.parse(data);
+};
+
+export const createNewConversationFile = async (conversation: Conversation) => {
+    if (!baseDirectoryHandle) {
+        throw new Error('Base directory is not set. Please set the base directory first.');
+    }
+
     try {
-        const res = await axios.get(`https://api.oriagent.com/v1/messages?user=abc-123&conversation_id=${conversationId}`, {
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-            },
-        });
-        return res.data.data;
+        const fileHandle = await baseDirectoryHandle.getFileHandle(`${conversation.key}.json`, { create: true });
+        const writable = await fileHandle.createWritable();
+        const content = {
+            title: conversation.title,
+            latestAgent: conversation.latestAgent,
+            conversationId: conversation.conversationId,
+            messages: conversation.messages
+        };
+        await writable.write(JSON.stringify(content, null, 2));
+        await writable.close();
+        console.log("Conversation file created successfully");
     } catch (error) {
-        console.error('Error fetching message history:', error);
-        throw error; // Ném lỗi lên trên
+        console.error("Failed to create conversation file:", error);
+        throw error;
     }
 };

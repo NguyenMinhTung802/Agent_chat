@@ -68,7 +68,7 @@ const InputMessage: React.FC<InputMessageProps> = ({ onSend }) => {
             ref={textareaRef}
             value={message}
             onChange={handleTextareaChange}
-            placeholder="Nhập tin nhắn của bạn"
+            placeholder="Ask anything"
             rows={1}
             className="flex-grow bg-transparent px-3 py-2.5 text-base text-black placeholder:text-gray-400 resize-none max-h-[33vh] focus:outline-none" // Giới hạn chiều cao tối đa là 1/3 chiều cao màn hình
             onKeyDown={handleKeyDown}
@@ -87,7 +87,7 @@ const InputMessage: React.FC<InputMessageProps> = ({ onSend }) => {
             onClick={() => console.log("Open file upload")} // Place holder function
           >
             <Paperclip className="h-5 w-5" />
-            <span className="hover:text-black">Tải lên tệp</span>
+            <span className="hover:text-black">Upload file</span>
           </button>
           <button
             className="flex items-center gap-2 text-gray-400 hover:text-black"
