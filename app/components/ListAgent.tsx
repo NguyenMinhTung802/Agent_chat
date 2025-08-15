@@ -15,10 +15,12 @@ const ListAgent: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [showModal, setShowModal] = useState<boolean>(false); // State để mở/đóng modal
     const [searchTerm, setSearchTerm] = useState('');
+    const [originalAgents, setOriginalAgents] = useState<Agent[]>([]);
 
     const fetchAgents = async () => {
         const agentsData = await getAgentsFromFile();
         setAgents(agentsData);
+        setOriginalAgents(agentsData); // Cập nhật danh sách gốc
     };
 
     useEffect(() => {
@@ -37,7 +39,8 @@ const ListAgent: React.FC = () => {
     };
 
     const handleSearch = () => {
-        const filteredAgents = agents.filter(agent => 
+        // Thay đổi: Filter từ danh sách gốc
+        const filteredAgents = originalAgents.filter(agent => 
             agent.syntax.toLowerCase().includes(searchTerm.toLowerCase()) || 
             agent.description.toLowerCase().includes(searchTerm.toLowerCase())
         );
