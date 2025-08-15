@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { addAgentToFile, getAgentsFromFile } from '../api/api'; 
+import { addAgentToFile, getAgentsFromFile, deleteAgentFromFile } from '../api/api'; 
 import Modal from './Modal'; // Nhập component Modal
 
 interface Agent {
@@ -62,7 +62,10 @@ const ListAgent: React.FC = () => {
         setSelectedAgent(agent);
         setShowModal(true);
     };
-
+    const handleDeleteAgent = async (agent: Agent) => {
+        await deleteAgentFromFile(agent.syntax); // Gọi hàm xóa agent từ file JSON
+        fetchAgents(); // Cập nhật danh sách agents
+    };
     const sortedAgents = [...agents].sort((a, b) => {
         return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
     });
@@ -135,7 +138,7 @@ const ListAgent: React.FC = () => {
                                                 <Image src="/edit.svg" alt="Edit" width={20} height={20} />
                                                 <span>Edit</span>
                                             </button>
-                                            <button className="flex items-center bg-red-500 text-white rounded px-2">
+                                            <button onClick={() => handleDeleteAgent(agent)} className="flex items-center bg-red-500 text-white rounded px-2">
                                                 <Image src="/delete.svg" alt="Delete" width={20} height={20} />
                                                 <span>Delete</span>
                                             </button>

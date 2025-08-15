@@ -75,6 +75,28 @@ export const addAgentToFile = async (newAgent: Agent) => {
         throw error;
     }
 };
+export const deleteAgentFromFile = async (agentSyntax: string) => {
+    if (!baseDirectoryHandle) {
+        throw new Error('Base directory is not set. Please set the base directory first.');
+    }
+
+    try {
+        const fileHandle = await baseDirectoryHandle.getFileHandle('agents.json');
+        const file = await fileHandle.getFile();
+        const data = await file.text();
+        const agents = JSON.parse(data);
+
+        // Lọc ra các agent không có syntax trùng khớp
+        const updatedAgents = agents.filter((agent: Agent) => agent.syntax !== agentSyntax);
+
+        const writable = await fileHandle.createWritable();
+        await writable.write(JSON.stringify(updatedAgents, null, 2));
+        await writable.close();
+    } catch (error) {
+        console.error("Failed to delete agent:", error);
+        throw error;
+    }
+};
 
 export const sendMessageToAPI = async (message: string, conversationId: string, agent: string) => {
     // Xác định apiEndpoint dựa trên agent
