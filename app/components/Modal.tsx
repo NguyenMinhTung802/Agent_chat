@@ -3,25 +3,39 @@ import React from 'react';
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (agent: {syntax: string; description: string; apiKey: string; isPinned: boolean;}) => void;
+    onSave: (agent: { syntax: string; description: string; apiKey: string; isPinned: boolean; }) => void;
+    agent: { syntax: string; description: string; apiKey: string; isPinned: boolean; } | null; // Thêm props agent
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, onSave }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, agent }) => {
     const [syntax, setSyntax] = React.useState('');
     const [description, setDescription] = React.useState('');
     const [apiKey, setApiKey] = React.useState('');
 
+    // Khi modal mở, cập nhật giá trị state với thông tin của agent nếu có
+    React.useEffect(() => {
+        if (agent) {
+            setSyntax(agent.syntax);
+            setDescription(agent.description);
+            setApiKey(agent.apiKey);
+        } else {
+            setSyntax('');
+            setDescription('');
+            setApiKey('');
+        }
+    }, [agent]);
+
     if (!isOpen) return null;
 
     const handleSave = () => {
-        onSave({ syntax, description, apiKey, isPinned: false });
+        onSave({ syntax, description, apiKey, isPinned: false }); // Giả định isPinned mặc định là false khi thêm mới
         onClose();
     };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg p-6 w-1/3">
-                <h2 className="text-xl mb-4">Add New Agent</h2>
+        <div className="fixed inset-0 flex items-center justify-center"> {/* Màu nền mờ */}
+            <div className="bg-white rounded-lg p-6 w-1/3 shadow-lg"> {/* Thêm shadow cho modal */}
+                <h2 className="text-xl mb-4">{agent ? "Edit your agent" : "Add New Agent"}</h2> {/* Thay đổi tiêu đề */}
                 <input
                     type="text"
                     placeholder="Syntax"

@@ -14,6 +14,7 @@ interface Agent {
 const ListAgent: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [showModal, setShowModal] = useState<boolean>(false); // State để mở/đóng modal
+    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null); // Agent hiện tại
     const [searchTerm, setSearchTerm] = useState('');
     const [originalAgents, setOriginalAgents] = useState<Agent[]>([]);
 
@@ -38,8 +39,12 @@ const ListAgent: React.FC = () => {
         fetchAgents(); // Lấy lại danh sách agents
     };
 
+    const handleUpdateAgent = async (updatedAgent: Agent) => {
+        await addAgentToFile(updatedAgent); // Cập nhật thông tin agent
+        fetchAgents(); // Lấy lại danh sách agents
+    };
+
     const handleSearch = () => {
-        // Thay đổi: Filter từ danh sách gốc
         const filteredAgents = originalAgents.filter(agent => 
             agent.syntax.toLowerCase().includes(searchTerm.toLowerCase()) || 
             agent.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -51,6 +56,11 @@ const ListAgent: React.FC = () => {
         if (e.key === 'Enter') {
             handleSearch();
         }
+    };
+
+    const handleEditAgent = (agent: Agent) => {
+        setSelectedAgent(agent);
+        setShowModal(true);
     };
 
     const sortedAgents = [...agents].sort((a, b) => {
@@ -80,7 +90,10 @@ const ListAgent: React.FC = () => {
                         <Image src="/search.svg" width={20} height={20} alt="Search your agent" className="ml-2" />
                     </button>
                     <button 
-                        onClick={() => setShowModal(true)} // Mở modal
+                        onClick={() => {
+                            setSelectedAgent(null); // Reset selected agent khi thêm mới
+                            setShowModal(true); // Mở modal để thêm agent mới
+                        }} 
                         className="flex items-center bg-black text-white hover:bg-gray-200 hover:text-white rounded-lg px-4 py-2"
                     >
                         <Image src="/plus.svg" width={20} height={20} alt="Add new" />
@@ -89,12 +102,17 @@ const ListAgent: React.FC = () => {
                 </div>
             </header>
 
-            {/* Modal để thêm agent mới */}
+            {/* Modal để thêm hoặc chỉnh sửa agent */}
             <Modal 
                 isOpen={showModal} 
-                onClose={() => setShowModal(false)} 
-                onSave={handleAddNewAgent} 
+                onClose={() => {
+                    setShowModal(false);
+                    setSelectedAgent(null);  // Reset selected agent khi đóng modal
+                }} 
+                onSave={selectedAgent ? handleUpdateAgent : handleAddNewAgent} 
+                agent={selectedAgent}  // Chuyển agent đang được chỉnh sửa vào modal
             />
+
             <div className="grid grid-cols-4 gap-4 p-4">
                 {pinnedAgents.length > 0 && (
                     <div className="col-span-4 mb-4">
@@ -113,7 +131,7 @@ const ListAgent: React.FC = () => {
                                                 <Image src="/pin.svg" alt="Pin/Unpin" width={20} height={20} />
                                                 <span>{agent.isPinned ? 'Unpin' : 'Pin'}</span>
                                             </button>
-                                            <button className="flex items-center bg-blue-500 text-white rounded px-2">
+                                            <button onClick={() => handleEditAgent(agent)} className="flex items-center bg-blue-500 text-white rounded px-2">
                                                 <Image src="/edit.svg" alt="Edit" width={20} height={20} />
                                                 <span>Edit</span>
                                             </button>
@@ -130,10 +148,11 @@ const ListAgent: React.FC = () => {
                 )}
 
                 <div className="col-span-4 mb-4">
+                    <h2 className="text-xl font-semibold">Unpinned Agents</h2>
                     <div className="grid grid-cols-4 gap-4">
                         {unpinnedAgents.length > 0 ? (
                             unpinnedAgents.map((agent, index) => (
-                                <div key={index} className="border rounded-lg p-4 flex mt-20">
+                                <div key={index} className="border rounded-lg p-4 flex">
                                     <div className="flex-shrink-0">
                                         <Image src="/bot_avatar.png" alt="Agent" width={50} height={50} />
                                     </div>
@@ -145,7 +164,7 @@ const ListAgent: React.FC = () => {
                                                 <Image src="/pin.svg" alt="Pin" width={20} height={20} />
                                                 <span>Pin</span>
                                             </button>
-                                            <button className="flex items-center bg-blue-500 text-white rounded px-2">
+                                            <button onClick={() => handleEditAgent(agent)} className="flex items-center bg-blue-500 text-white rounded px-2">
                                                 <Image src="/edit.svg" alt="Edit" width={20} height={20} />
                                                 <span>Edit</span>
                                             </button>
