@@ -37,8 +37,11 @@ const ListAgent: React.FC = () => {
     };
 
     const handleSearch = () => {
-        console.log('Searching for agents with term:', searchTerm);
-        // Logic tìm kiếm sẽ ở đây (có thể filter agents dựa trên searchTerm)
+        const filteredAgents = agents.filter(agent => 
+            agent.syntax.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            agent.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setAgents(filteredAgents); // Cập nhật danh sách agents theo kết quả tìm kiếm
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -60,6 +63,20 @@ const ListAgent: React.FC = () => {
                 <h1 className="text-3xl font-bold">Your AI agent list</h1>
                 <div className="flex items-center gap-2">
                     <button 
+                        onClick={handleSearch} 
+                        className="flex items-center bg-gray-50 text-black hover:bg-gray-100 hover:text-black rounded-lg px-4 py-2"
+                    >
+                        <input 
+                            type="text" 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search Your Agent"
+                            onKeyDown={handleKeyDown} 
+                            className="border-0 focus:outline-none focus:ring-0"
+                        />
+                        <Image src="/search.svg" width={20} height={20} alt="Search your agent" className="ml-2" />
+                    </button>
+                    <button 
                         onClick={() => setShowModal(true)} // Mở modal
                         className="flex items-center bg-black text-white hover:bg-gray-200 hover:text-white rounded-lg px-4 py-2"
                     >
@@ -75,7 +92,6 @@ const ListAgent: React.FC = () => {
                 onClose={() => setShowModal(false)} 
                 onSave={handleAddNewAgent} 
             />
-
             <div className="grid grid-cols-4 gap-4 p-4">
                 {pinnedAgents.length > 0 && (
                     <div className="col-span-4 mb-4">
@@ -114,7 +130,7 @@ const ListAgent: React.FC = () => {
                     <div className="grid grid-cols-4 gap-4">
                         {unpinnedAgents.length > 0 ? (
                             unpinnedAgents.map((agent, index) => (
-                                <div key={index} className="border rounded-lg p-4 flex">
+                                <div key={index} className="border rounded-lg p-4 flex mt-20">
                                     <div className="flex-shrink-0">
                                         <Image src="/bot_avatar.png" alt="Agent" width={50} height={50} />
                                     </div>
@@ -145,18 +161,6 @@ const ListAgent: React.FC = () => {
                         )}
                     </div>
                 </div>
-            </div>
-
-            {/* Khu vực tìm kiếm */}
-            <div className="p-4">
-                <input 
-                    type="text" 
-                    placeholder="Search agents..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="border rounded p-2 w-full"
-                />
             </div>
         </div>
     );
