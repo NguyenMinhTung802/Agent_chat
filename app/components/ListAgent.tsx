@@ -13,15 +13,15 @@ interface Agent {
 
 const ListAgent: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
-    const [showModal, setShowModal] = useState<boolean>(false); // State để mở/đóng modal
-    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null); // Agent hiện tại
+    const [showModal, setShowModal] = useState<boolean>(false); 
+    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null); 
     const [searchTerm, setSearchTerm] = useState('');
     const [originalAgents, setOriginalAgents] = useState<Agent[]>([]);
 
     const fetchAgents = async () => {
         const agentsData = await getAgentsFromFile();
         setAgents(agentsData);
-        setOriginalAgents(agentsData); // Cập nhật danh sách gốc
+        setOriginalAgents(agentsData); 
     };
 
     useEffect(() => {
@@ -30,18 +30,18 @@ const ListAgent: React.FC = () => {
 
     const handlePinAgent = async (agent: Agent) => {
         const updatedAgent = { ...agent, isPinned: !agent.isPinned };
-        await addAgentToFile(updatedAgent); // Cập nhật agent trong file
-        fetchAgents(); // Lấy lại danh sách agents
+        await addAgentToFile(updatedAgent);
+        fetchAgents();
     };
 
-    const handleAddNewAgent = async (agent: { syntax: string; description: string; apiKey: string; isPinned: boolean; }) => {
-        await addAgentToFile(agent); // Thêm agent mới
-        fetchAgents(); // Lấy lại danh sách agents
+    const handleAddNewAgent = async (agent: Agent) => {
+        await addAgentToFile(agent); 
+        fetchAgents(); 
     };
 
     const handleUpdateAgent = async (updatedAgent: Agent) => {
-        await addAgentToFile(updatedAgent); // Cập nhật thông tin agent
-        fetchAgents(); // Lấy lại danh sách agents
+        await addAgentToFile(updatedAgent); 
+        fetchAgents(); 
     };
 
     const handleSearch = () => {
@@ -49,7 +49,7 @@ const ListAgent: React.FC = () => {
             agent.syntax.toLowerCase().includes(searchTerm.toLowerCase()) || 
             agent.description.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        setAgents(filteredAgents); // Cập nhật danh sách agents theo kết quả tìm kiếm
+        setAgents(filteredAgents); 
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -62,10 +62,16 @@ const ListAgent: React.FC = () => {
         setSelectedAgent(agent);
         setShowModal(true);
     };
+
+    // Cập nhật hàm xóa agent
     const handleDeleteAgent = async (agent: Agent) => {
-        await deleteAgentFromFile(agent.syntax); // Gọi hàm xóa agent từ file JSON
-        fetchAgents(); // Cập nhật danh sách agents
+        const confirmDelete = window.confirm(`Are you sure you want to delete the agent: ${agent.syntax}?`);
+        if (confirmDelete) {
+            await deleteAgentFromFile(agent.syntax);
+            fetchAgents(); 
+        }
     };
+
     const sortedAgents = [...agents].sort((a, b) => {
         return (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
     });
@@ -94,8 +100,8 @@ const ListAgent: React.FC = () => {
                     </button>
                     <button 
                         onClick={() => {
-                            setSelectedAgent(null); // Reset selected agent khi thêm mới
-                            setShowModal(true); // Mở modal để thêm agent mới
+                            setSelectedAgent(null);
+                            setShowModal(true); 
                         }} 
                         className="flex items-center bg-black text-white hover:bg-gray-200 hover:text-white rounded-lg px-4 py-2"
                     >
@@ -105,15 +111,14 @@ const ListAgent: React.FC = () => {
                 </div>
             </header>
 
-            {/* Modal để thêm hoặc chỉnh sửa agent */}
             <Modal 
                 isOpen={showModal} 
                 onClose={() => {
                     setShowModal(false);
-                    setSelectedAgent(null);  // Reset selected agent khi đóng modal
+                    setSelectedAgent(null);   
                 }} 
                 onSave={selectedAgent ? handleUpdateAgent : handleAddNewAgent} 
-                agent={selectedAgent}  // Chuyển agent đang được chỉnh sửa vào modal
+                agent={selectedAgent} 
             />
 
             <div className="grid grid-cols-4 gap-4 p-4">
@@ -171,7 +176,7 @@ const ListAgent: React.FC = () => {
                                                 <Image src="/edit.svg" alt="Edit" width={20} height={20} />
                                                 <span>Edit</span>
                                             </button>
-                                            <button className="flex items-center bg-red-500 text-white rounded px-2">
+                                            <button onClick={() => handleDeleteAgent(agent)} className="flex items-center bg-red-500 text-white rounded px-2">
                                                 <Image src="/delete.svg" alt="Delete" width={20} height={20} />
                                                 <span>Delete</span>
                                             </button>
